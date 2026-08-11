@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  FREELANCER
+}
+
+enum ProjectStatus {
+  DRAFT
+  PENDING_PAYMENT
+  FUNDED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum TransactionStatus {
+  HOLDED
+  RELEASED
+  REFUNDED
+}
+
+model User {
+  id             String   @id @default(cuid())
+  phone          String   @unique
+  role           Role     @default(FREELANCER)
+  name           String?
+  bio            String?
+  skills         String[] @default([])
+  rating         Float    @default(0)
+  reviewsCount   Int      @default(0)
+  completedDeals Int      @default(0)
+  telegram       String?
+  github         String?
+  isVerified     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  clientProjects     Project[]     @relation("ClientProjects")
+  freelancerProjects Project[]     @relation("FreelancerProjects")
+  applications       Application[]
+  sentMessages       Message[]     @relation("SentMessages")
+  receivedMessages   Message[]     @relation("ReceivedMessages")
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  budget       Int
+  currency     String        @default("RUB")
+  tags         String[]      @default([])
+  deadline     DateTime?
+  status       ProjectStatus @default(DRAFT)
+  clientId     String
+  client       User          @relation("ClientProjects", fields: [clientId], references: [id])
+  freelancerId String?
+  freelancer   User?         @relation("FreelancerProjects", fields: [freelancerId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  applications Application[]
+  transactions Transaction[]
+  messages     Message[]
+
+  @@index([status, createdAt])
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  pitch        String
+  status       ApplicationStatus @default(PENDING)
+  projectId    String
+  project      Project           @relation(fields: [projectId], references: [id])
+  freelancerId String
+  freelancer   User              @relation(fields: [freelancerId], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@unique([projectId, freelancerId])
+}
+
+model Transaction {
+  id         String            @id @default(cuid())
+  amount     Int
+  currency   String            @default("RUB")
+  status     TransactionStatus @default(HOLDED)
+  provider   String            @default("mock")
+  externalId String?
+  projectId  String
+  project    Project           @relation(fields: [projectId], references: [id])
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([projectId, status])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  text        String
+  wasMasked   Boolean  @default(false)
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model VerificationCode {
+  id        String    @id @default(cuid())
+  phone     String
+  code      String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
