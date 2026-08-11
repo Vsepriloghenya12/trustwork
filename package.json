@@ -1,0 +1,12 @@
+{
+  "name": "trustwork",
+  "private": true,
+  "description": "Деплой-переходник: сборка из корня репозитория собирает PWA (apps/pwa). Сервис backend использует Root Directory=backend и этот файл не видит.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm install --prefix apps/pwa && npm run build --prefix apps/pwa",
+    "start": "npm run start --prefix apps/pwa"
+  }
+}
