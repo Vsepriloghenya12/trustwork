@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api, setSession, updateStoredUser } from '@/lib/api'
-import { LockIcon } from '@/components/Icons'
+import { LockIcon, CheckIcon, ShieldIcon } from '@/components/Icons'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -94,10 +94,33 @@ export default function LoginPage() {
           <button className="btn btn--primary" disabled={busy}>
             Получить код из SMS
           </button>
-          <p className="small muted row" style={{ gap: 6 }}>
-            <LockIcon /> Никакого паспорта — только номер телефона.
-          </p>
         </form>
+      )}
+
+      {step === 'phone' && (
+        <ul className="trust-list card">
+          <li>
+            <LockIcon size={16} />
+            <span>
+              <b>Оплата гарантирована.</b> Заказчик замораживает бюджет в эскроу до начала работы —
+              деньги уже ждут исполнителя.
+            </span>
+          </li>
+          <li>
+            <CheckIcon size={16} />
+            <span>
+              <b>Отклики бесплатны.</b> Никаких платных поднятий и «лотерейных билетов» — платформа
+              берет комиссию только с успешной сделки.
+            </span>
+          </li>
+          <li>
+            <ShieldIcon size={16} />
+            <span>
+              <b>Сделка под защитой.</b> Переписка и файлы хранятся на платформе, спор решает
+              арбитраж.
+            </span>
+          </li>
+        </ul>
       )}
 
       {step === 'code' && (

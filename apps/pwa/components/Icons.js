@@ -86,6 +86,13 @@ export const PlusIcon = ({ size = 20 }) => (
   </svg>
 )
 
+export const ShieldIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M12 2.5l7.5 3v6c0 4.8-3.2 8.6-7.5 10-4.3-1.4-7.5-5.2-7.5-10v-6l7.5-3z" />
+    <path d="M8.8 12l2.3 2.3 4.1-4.3" />
+  </svg>
+)
+
 export const CalendarIcon = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
     <rect x="3.5" y="5" width="17" height="16" rx="3" />
