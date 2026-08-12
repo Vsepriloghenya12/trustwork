@@ -5,7 +5,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js'
 import { fundProject, completeProject, refundEscrow } from '../services/escrow.js'
 import { maskContacts } from '../services/moderation.js'
 import { assertTransition } from '../services/projectStateMachine.js'
-import { REVIEW_TAGS, determineReviewKind, recalcClientRating } from '../services/reviews.js'
+import { REVIEW_TAGS, resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
 
@@ -225,9 +225,9 @@ projectsRouter.post('/:id/messages', requireAuth, async (req, res) => {
   res.status(201).json(message)
 })
 
-// Оценка заказчика. Гейт: реальный диалог по проекту. После диалога — факт-теги,
-// после завершенной сделки (для исполнителя) — звезды. Повторная оценка проекта
-// возможна только как «апгрейд» DIALOG → DEAL.
+// Двусторонняя оценка по проекту. Фрилансер оценивает заказчика (гейт — диалог;
+// теги после диалога, звезды после сделки), заказчик — исполнителя (звезды после
+// завершения). Повторная оценка возможна только как «апгрейд» DIALOG → DEAL.
 projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
   const body = z
     .object({
@@ -237,22 +237,30 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
     })
     .parse(req.body)
   const project = await getProject(req.params.id)
-  if (project.clientId === req.user.id) throw new ApiError(400, 'Нельзя оценить самого себя')
+  const target = resolveReviewTarget(project, req.user.id)
+  if (!target.allowed || !target.subjectId) {
+    throw new ApiError(409, 'Оценка исполнителя доступна после завершения сделки')
+  }
+  if (target.subjectId === req.user.id) throw new ApiError(400, 'Нельзя оценить самого себя')
+  if (!target.allowTags && body.tags.length > 0) {
+    throw new ApiError(400, 'Факт-теги доступны только при оценке заказчика')
+  }
 
-  const hasDialog = await prisma.message.findFirst({
-    where: {
-      projectId: project.id,
-      OR: [
-        { senderId: req.user.id, recipientId: project.clientId },
-        { senderId: project.clientId, recipientId: req.user.id },
-      ],
-    },
-  })
-  if (!hasDialog) throw new ApiError(403, 'Оценка доступна после диалога с заказчиком')
+  if (target.requiresDialog) {
+    const hasDialog = await prisma.message.findFirst({
+      where: {
+        projectId: project.id,
+        OR: [
+          { senderId: req.user.id, recipientId: target.subjectId },
+          { senderId: target.subjectId, recipientId: req.user.id },
+        ],
+      },
+    })
+    if (!hasDialog) throw new ApiError(403, 'Оценка доступна после диалога с заказчиком')
+  }
 
-  const kind = determineReviewKind(project, req.user.id)
-  if (kind === 'DEAL' && !body.rating) throw new ApiError(400, 'Поставьте оценку от 1 до 5')
-  if (kind === 'DIALOG') {
+  if (target.kind === 'DEAL' && !body.rating) throw new ApiError(400, 'Поставьте оценку от 1 до 5')
+  if (target.kind === 'DIALOG') {
     if (body.rating) {
       throw new ApiError(400, 'Звезды доступны после завершенной сделки — сейчас можно оставить факт-теги')
     }
@@ -264,27 +272,27 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
   })
   let review
   if (existing) {
-    if (existing.kind === 'DEAL' || kind === 'DIALOG') {
-      throw new ApiError(409, 'Вы уже оценили заказчика по этому проекту')
+    if (existing.kind === 'DEAL' || target.kind === 'DIALOG') {
+      throw new ApiError(409, 'Вы уже оставили оценку по этому проекту')
     }
     review = await prisma.review.update({
       where: { id: existing.id },
-      data: { kind, rating: body.rating, tags: body.tags, comment: body.comment },
+      data: { kind: target.kind, rating: body.rating, tags: body.tags, comment: body.comment },
     })
   } else {
     review = await prisma.review.create({
       data: {
-        kind,
+        kind: target.kind,
         rating: body.rating,
         tags: body.tags,
         comment: body.comment,
         projectId: project.id,
-        clientId: project.clientId,
+        subjectId: target.subjectId,
         authorId: req.user.id,
       },
     })
   }
-  if (kind === 'DEAL') await recalcClientRating(project.clientId)
+  if (target.kind === 'DEAL') await recalcUserRating(target.subjectId)
   res.status(201).json(review)
 })
 

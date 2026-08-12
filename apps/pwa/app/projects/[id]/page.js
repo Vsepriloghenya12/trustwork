@@ -125,6 +125,9 @@ export default function ProjectPage() {
   }
 
   const isDealReview = project?.status === 'COMPLETED' && isAssignee
+  // заказчик оценивает исполнителя (звезды после завершения), фрилансер — заказчика
+  const reviewingFreelancer = Boolean(isOwner)
+  const showStars = reviewingFreelancer || isDealReview
 
   async function sendReview(e) {
     e.preventDefault()
@@ -134,8 +137,8 @@ export default function ProjectPage() {
       await api(`/api/projects/${id}/reviews`, {
         method: 'POST',
         body: {
-          ...(isDealReview ? { rating: reviewRating } : {}),
-          tags: reviewTags,
+          ...(showStars ? { rating: reviewRating } : {}),
+          tags: reviewingFreelancer ? [] : reviewTags,
           ...(reviewComment.trim() ? { comment: reviewComment.trim() } : {}),
         },
       })
@@ -188,12 +191,13 @@ export default function ProjectPage() {
 
       <div className="stack" style={{ gap: 10, paddingBottom: 2 }}>
         <div className="row" style={{ gap: 10 }}>
-          <Avatar name={project.client.name} size={44} />
-          <div style={{ flex: 1 }}>
-            <div className="row" style={{ gap: 5 }}>
-              <span style={{ fontWeight: 800, fontSize: 14 }}>
-                {project.client.name || 'Заказчик'}
-              </span>
+          <Link href={`/users/${project.client.id}`} className="row" style={{ gap: 10, flex: 1 }}>
+            <Avatar name={project.client.name} size={44} />
+            <div style={{ flex: 1 }}>
+              <div className="row" style={{ gap: 5 }}>
+                <span style={{ fontWeight: 800, fontSize: 14 }}>
+                  {project.client.name || 'Заказчик'}
+                </span>
               {project.client.isVerified && (
                 <span style={{ color: 'var(--c-primary)', display: 'inline-flex' }}>
                   <VerifiedIcon />
@@ -213,6 +217,7 @@ export default function ProjectPage() {
               )}
             </div>
           </div>
+          </Link>
           {user && !isOwner && !reviewDone && (
             <button className="btn btn--ghost btn--compact" onClick={() => setReviewOpen(true)}>
               Оценить
@@ -340,7 +345,7 @@ export default function ProjectPage() {
           )}
           {applications?.map((a) => (
             <div key={a.id} className="thread">
-              <div className="row">
+              <Link href={`/users/${a.freelancer.id}`} className="row">
                 <Avatar name={a.freelancer.name} size={34} />
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: 800, fontSize: 14 }}>
@@ -351,7 +356,7 @@ export default function ProjectPage() {
                     {a.freelancer.isVerified ? ' · Проверенный' : ' · Новичок'}
                   </div>
                 </div>
-              </div>
+              </Link>
               <p className="small" style={{ whiteSpace: 'pre-wrap' }}>{a.pitch}</p>
               <div className="row">
                 <button
@@ -401,6 +406,12 @@ export default function ProjectPage() {
         </div>
       )}
 
+      {isOwner && project.status === 'COMPLETED' && project.freelancer && !reviewDone && (
+        <button className="btn btn--ghost" onClick={() => setReviewOpen(true)}>
+          Оценить исполнителя
+        </button>
+      )}
+
       {/* ---- Шторка питча ---- */}
       {pitchOpen && (
         <div className="sheet-backdrop" onClick={() => setPitchOpen(false)}>
@@ -429,8 +440,10 @@ export default function ProjectPage() {
       {reviewOpen && (
         <div className="sheet-backdrop" onClick={() => setReviewOpen(false)}>
           <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendReview}>
-            <div className="title-lg">Оценить заказчика</div>
-            {isDealReview ? (
+            <div className="title-lg">
+              {reviewingFreelancer ? 'Оценить исполнителя' : 'Оценить заказчика'}
+            </div>
+            {showStars ? (
               <>
                 <p className="small muted">Сделка завершена — ваша оценка попадет в рейтинг.</p>
                 <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
@@ -453,21 +466,23 @@ export default function ProjectPage() {
               </>
             ) : (
               <p className="small muted">
-                Отметьте факты о общении (до 3). Звезды станут доступны после завершенной сделки.
+                Отметьте факты об общении (до 3). Звезды станут доступны после завершенной сделки.
               </p>
             )}
-            <div className="chips">
-              {REVIEW_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`chip${reviewTags.includes(tag) ? ' chip--active' : ''}`}
-                  onClick={() => toggleReviewTag(tag)}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
+            {!reviewingFreelancer && (
+              <div className="chips">
+                {REVIEW_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={`chip${reviewTags.includes(tag) ? ' chip--active' : ''}`}
+                    onClick={() => toggleReviewTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
               className="input"
               rows={3}
@@ -478,7 +493,7 @@ export default function ProjectPage() {
             {actionError && <div className="form-error">{actionError}</div>}
             <button
               className="btn btn--primary"
-              disabled={busy || (isDealReview ? reviewRating === 0 : reviewTags.length === 0)}
+              disabled={busy || (showStars ? reviewRating === 0 : reviewTags.length === 0)}
             >
               Отправить отзыв
             </button>

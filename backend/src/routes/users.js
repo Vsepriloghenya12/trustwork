@@ -32,10 +32,10 @@ usersRouter.get('/:id', async (req, res) => {
   res.json(publicUser(user))
 })
 
-// Отзывы о заказчике: сводка по факт-тегам + последние отзывы
+// Отзывы о пользователе: сводка по факт-тегам + последние отзывы
 usersRouter.get('/:id/reviews', async (req, res) => {
   const all = await prisma.review.findMany({
-    where: { clientId: req.params.id },
+    where: { subjectId: req.params.id },
     select: { kind: true, tags: true },
   })
   const tagCounts = {}
@@ -43,7 +43,7 @@ usersRouter.get('/:id/reviews', async (req, res) => {
     for (const tag of r.tags) tagCounts[tag] = (tagCounts[tag] ?? 0) + 1
   }
   const recent = await prisma.review.findMany({
-    where: { clientId: req.params.id },
+    where: { subjectId: req.params.id },
     orderBy: { createdAt: 'desc' },
     take: 20,
     include: { author: true },

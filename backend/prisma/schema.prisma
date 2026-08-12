@@ -63,7 +63,7 @@ model User {
   applications       Application[]
   sentMessages       Message[]     @relation("SentMessages")
   receivedMessages   Message[]     @relation("ReceivedMessages")
-  reviewsReceived    Review[]      @relation("ClientReviews")
+  reviewsReceived    Review[]      @relation("SubjectReviews")
   reviewsAuthored    Review[]      @relation("AuthoredReviews")
 }
 
@@ -91,8 +91,9 @@ model Project {
   @@index([status, createdAt])
 }
 
-// Оценка заказчика фрилансером. Гейт: только после реального диалога по проекту.
-// DIALOG — факт-теги без звезд; DEAL — звезды после завершенной сделки (больший вес).
+// Двусторонняя оценка по проекту. subject — кого оценивают, author — кто.
+// Фрилансер → заказчик: после диалога DIALOG (факт-теги), после сделки DEAL (звезды).
+// Заказчик → исполнитель: только DEAL после завершенной сделки.
 model Review {
   id        String     @id @default(cuid())
   kind      ReviewKind
@@ -101,14 +102,14 @@ model Review {
   comment   String?
   projectId String
   project   Project    @relation(fields: [projectId], references: [id])
-  clientId  String
-  client    User       @relation("ClientReviews", fields: [clientId], references: [id])
+  subjectId String
+  subject   User       @relation("SubjectReviews", fields: [subjectId], references: [id])
   authorId  String
   author    User       @relation("AuthoredReviews", fields: [authorId], references: [id])
   createdAt DateTime   @default(now())
 
   @@unique([projectId, authorId])
-  @@index([clientId, kind])
+  @@index([subjectId, kind])
 }
 
 model Application {
