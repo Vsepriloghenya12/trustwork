@@ -1,0 +1,41 @@
+{
+  "packageId": "ru.trustwork.app",
+  "host": "trustwork-pwa-production.up.railway.app",
+  "name": "TrustWork",
+  "launcherName": "TrustWork",
+  "display": "standalone",
+  "themeColor": "#3B3486",
+  "themeColorDark": "#3B3486",
+  "navigationColor": "#3B3486",
+  "navigationColorDark": "#3B3486",
+  "navigationDividerColor": "#3B3486",
+  "navigationDividerColorDark": "#3B3486",
+  "backgroundColor": "#F5F6FB",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://trustwork-pwa-production.up.railway.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "trustwork"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://trustwork-pwa-production.up.railway.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://trustwork-pwa-production.up.railway.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

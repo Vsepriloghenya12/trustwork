@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ru.trustwork.app",
+      "sha256_cert_fingerprints": [
+        "F7:6A:34:57:D3:04:D8:3B:60:77:15:2E:63:17:4B:10:42:C9:DC:0D:4E:6C:A5:A9:BF:8C:3E:B6:90:C4:4E:B9"
+      ]
+    }
+  }
+]

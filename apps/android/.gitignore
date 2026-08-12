@@ -1,0 +1,6 @@
+# Проект Android генерируется из twa-manifest.json командой `npx @bubblewrap/cli update`.
+# Ключ подписи и пароли НИКОГДА не попадают в git — сделайте их резервную копию!
+*
+!.gitignore
+!twa-manifest.json
+!README.md
