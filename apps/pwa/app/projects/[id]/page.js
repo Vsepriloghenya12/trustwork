@@ -184,9 +184,9 @@ export default function ProjectPage() {
     <main className="shell stack">
       <TopRow onBack={() => router.back()} status={STATUS_LABELS[project.status]} />
 
-      <h1 className="page-title" style={{ fontSize: 21 }}>{project.title}</h1>
+      <h1 className="title-xl">{project.title}</h1>
 
-      <div className="card stack" style={{ gap: 10 }}>
+      <div className="stack" style={{ gap: 10, paddingBottom: 2 }}>
         <div className="row" style={{ gap: 10 }}>
           <Avatar name={project.client.name} size={44} />
           <div style={{ flex: 1 }}>
@@ -248,7 +248,7 @@ export default function ProjectPage() {
         </div>
       ) : (
         project.status !== 'DRAFT' && (
-          <div className="card small muted">
+          <div className="notice">
             {project.status === 'COMPLETED'
               ? 'Сделка завершена. Оплата проходила напрямую, без эскроу.'
               : 'Бюджет не заморожен — оплата напрямую по договоренности. Эскроу подключает заказчик: тогда платформа гарантирует оплату.'}
@@ -273,12 +273,10 @@ export default function ProjectPage() {
         ))}
       </div>
 
-      <div className="card">
-        <div className="eyebrow" style={{ marginBottom: 6 }}>
-          Описание задачи
-        </div>
+      <section className="section">
+        <div className="h-sec">Описание задачи</div>
         <p style={{ whiteSpace: 'pre-wrap', fontSize: 14.5 }}>{project.description}</p>
-      </div>
+      </section>
 
       {actionError && !pitchOpen && !reviewOpen && <div className="form-error">{actionError}</div>}
 
@@ -296,7 +294,7 @@ export default function ProjectPage() {
         </button>
       )}
       {pitchSent && (
-        <div className="card row" style={{ justifyContent: 'center' }}>
+        <div className="row" style={{ justifyContent: 'center' }}>
           <span className="status-pill">Питч отправлен — заказчик видит ваш отклик</span>
         </div>
       )}
@@ -332,14 +330,16 @@ export default function ProjectPage() {
               Подключить эскроу — бейдж «Оплата гарантирована»
             </button>
           )}
-          <div className="eyebrow">Отклики {applications ? `· ${applications.length}` : ''}</div>
-          {applications?.length === 0 && (
-            <div className="card small muted">
-              Пока нет откликов. Фрилансеры уже видят проект в ленте.
+          <div className="section" style={{ gap: 0 }}>
+            <div className="h-sec">
+              Отклики {applications ? <b>· {applications.length}</b> : ''}
             </div>
+          </div>
+          {applications?.length === 0 && (
+            <div className="notice">Пока нет откликов. Фрилансеры уже видят проект в ленте.</div>
           )}
           {applications?.map((a) => (
-            <div key={a.id} className="card stack" style={{ gap: 10 }}>
+            <div key={a.id} className="thread">
               <div className="row">
                 <Avatar name={a.freelancer.name} size={34} />
                 <div style={{ flex: 1 }}>
@@ -394,7 +394,7 @@ export default function ProjectPage() {
       )}
 
       {project.status === 'COMPLETED' && (
-        <div className="card row" style={{ justifyContent: 'center', gap: 6 }}>
+        <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
           <span className="badge-escrow">
             {project.escrowReleased ? 'Сделка завершена · оплата выплачена' : 'Сделка завершена'}
           </span>
@@ -405,7 +405,7 @@ export default function ProjectPage() {
       {pitchOpen && (
         <div className="sheet-backdrop" onClick={() => setPitchOpen(false)}>
           <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendPitch}>
-            <div className="page-title">Предложить себя</div>
+            <div className="title-lg">Предложить себя</div>
             <p className="small muted">
               Короткий питч работает лучше шаблона: чем поможете и почему именно вы.
             </p>
@@ -429,7 +429,7 @@ export default function ProjectPage() {
       {reviewOpen && (
         <div className="sheet-backdrop" onClick={() => setReviewOpen(false)}>
           <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendReview}>
-            <div className="page-title">Оценить заказчика</div>
+            <div className="title-lg">Оценить заказчика</div>
             {isDealReview ? (
               <>
                 <p className="small muted">Сделка завершена — ваша оценка попадет в рейтинг.</p>

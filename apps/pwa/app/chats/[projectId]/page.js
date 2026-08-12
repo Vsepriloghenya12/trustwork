@@ -74,7 +74,7 @@ function ChatPage() {
 
   return (
     <div className="chat-screen">
-      <div style={{ padding: '12px 16px 0' }}>
+      <div style={{ padding: '12px 20px 0' }}>
         <div className="topbar" style={{ marginBottom: 10 }}>
           <button className="iconbtn" onClick={() => router.back()} aria-label="Назад">
             <BackIcon />

@@ -27,7 +27,7 @@ export default function SearchPage() {
 
   return (
     <main className="shell stack">
-      <h1 className="page-title">Поиск проектов</h1>
+      <h1 className="title-xl">Поиск проектов</h1>
 
       <input
         className="input"
@@ -52,7 +52,7 @@ export default function SearchPage() {
       {error && <div className="form-error">{error}</div>}
 
       {projects?.length === 0 && (
-        <div className="empty card">
+        <div className="empty">
           <span className="empty__icon">
             <SearchIcon />
           </span>

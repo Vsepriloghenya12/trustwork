@@ -46,13 +46,16 @@ export default function ChatsPage() {
   }, [router])
 
   return (
-    <main className="shell stack">
-      <h1 className="page-title">Чаты сделок</h1>
+    <main className="shell">
+      <h1 className="title-xl" style={{ marginBottom: 6 }}>Чаты сделок</h1>
+      <p className="sub" style={{ marginBottom: 8 }}>
+        Все договоренности — только здесь: переписка учитывается в арбитраже.
+      </p>
       {error && <div className="form-error">{error}</div>}
       {threads === null && !error && <div className="muted small">Загружаем…</div>}
 
       {threads?.length === 0 && (
-        <div className="empty card">
+        <div className="empty">
           <span className="empty__icon">
             <ChatIcon />
           </span>
@@ -64,7 +67,7 @@ export default function ChatsPage() {
       )}
 
       {threads?.map((t) => (
-        <Link key={t.project.id} href={t.href} className="card row" style={{ gap: 12 }}>
+        <Link key={t.project.id} href={t.href} className="list-row">
           <Avatar name={t.peer?.name || t.project.title} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>

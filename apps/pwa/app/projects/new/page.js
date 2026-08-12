@@ -49,12 +49,12 @@ export default function NewProjectPage() {
         <button className="iconbtn" onClick={() => router.back()} aria-label="Назад">
           <BackIcon />
         </button>
-        <span className="page-title">Новый проект</span>
+        <span className="title-lg">Новый проект</span>
         <span style={{ width: 42 }} />
       </div>
 
       <form className="stack" onSubmit={submit}>
-        <div className="card stack">
+        <div className="stack">
           <div className="field">
             <label htmlFor="title">Название задачи</label>
             <input

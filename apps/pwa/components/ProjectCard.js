@@ -13,9 +13,9 @@ export default function ProjectCard({ project }) {
             Оплата в эскроу
           </span>
         ) : (
-          <span className="chip" style={{ color: 'var(--c-muted)' }}>Эскроу не подключен</span>
+          <span className="caption">Эскроу не подключен</span>
         )}
-        <span className="small muted">{formatDate(project.createdAt)}</span>
+        <span className="caption">{formatDate(project.createdAt)}</span>
       </div>
       <div className="card__title">{project.title}</div>
       <div className="card__desc">{project.description}</div>

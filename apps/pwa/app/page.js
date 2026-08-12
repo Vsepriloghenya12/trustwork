@@ -20,38 +20,39 @@ export default function FeedPage() {
 
   return (
     <main className="shell stack">
-      <header className="topbar">
-        <div>
-          <div className="topbar__greeting">
-            {user?.name ? `Здравствуйте, ${user.name.split(' ')[0]}!` : 'Добро пожаловать!'}
-          </div>
+      <header>
+        <div className="topbar" style={{ marginBottom: 12 }}>
           <span className="logo">
             TrustWork
             <span className="logo__dot" />
           </span>
-        </div>
-        <div className="row">
-          {user?.role === 'CLIENT' && (
-            <Link href="/projects/new" className="iconbtn" aria-label="Создать проект">
-              <PlusIcon />
+          <div className="row">
+            {user?.role === 'CLIENT' && (
+              <Link href="/projects/new" className="iconbtn" aria-label="Создать проект">
+                <PlusIcon />
+              </Link>
+            )}
+            <Link href="/chats" className="iconbtn" aria-label="Уведомления">
+              <BellIcon />
             </Link>
-          )}
-          <Link href="/chats" className="iconbtn" aria-label="Уведомления">
-            <BellIcon />
-          </Link>
+          </div>
         </div>
+        <h1 className="title-xl">
+          {user?.name ? `Здравствуйте, ${user.name.split(' ')[0]}!` : 'Лента проектов'}
+        </h1>
+        <p className="sub" style={{ marginTop: 3 }}>
+          {projects === null && !error
+            ? 'Загружаем проекты…'
+            : projects?.length
+              ? `Открытых проектов: ${projects.length}. С эскроу — выше: их бюджет уже у платформы.`
+              : 'Проекты с эскроу показываются выше — их бюджет уже у платформы.'}
+        </p>
       </header>
 
-      <div className="eyebrow">Лента проектов</div>
-      <p className="small muted" style={{ marginTop: -6 }}>
-        Проекты с бейджем «Оплата в эскроу» — бюджет уже заморожен платформой, они выше в ленте.
-      </p>
-
       {error && <div className="form-error">{error}</div>}
-      {projects === null && !error && <div className="muted small">Загружаем ленту…</div>}
 
       {projects?.length === 0 && (
-        <div className="empty card">
+        <div className="empty">
           <span className="empty__icon">
             <FeedIcon />
           </span>

@@ -75,33 +75,22 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <main className="shell stack">
-        <h1 className="page-title">Профиль</h1>
+        <h1 className="title-xl">Профиль</h1>
         {error ? <div className="form-error">{error}</div> : <div className="muted small">Загружаем…</div>}
       </main>
     )
   }
 
   return (
-    <main className="shell stack">
-      <h1 className="page-title">Профиль</h1>
-
-      <div className="card stack" style={{ alignItems: 'center', textAlign: 'center' }}>
+    <main className="shell stack" style={{ gap: 16 }}>
+      <div className="stack" style={{ alignItems: 'center', textAlign: 'center', gap: 10, paddingTop: 8 }}>
         <Avatar name={user.name} size={72} />
         <div>
-          <div style={{ fontWeight: 800, fontSize: 18 }}>{user.name || 'Без имени'}</div>
-          <div className="small muted">
+          <div style={{ fontWeight: 800, fontSize: 19 }}>{user.name || 'Без имени'}</div>
+          <div className="sub">
             {user.role === 'CLIENT' ? 'Заказчик' : 'Фрилансер'} · {user.phone}
           </div>
         </div>
-        {user.reviewsCount > 0 && (
-          <div className="row small" style={{ gap: 4 }}>
-            <span style={{ color: '#f5a623', display: 'inline-flex' }}>
-              <StarIcon />
-            </span>
-            <b>{user.rating.toFixed(1)}</b>
-            <span className="muted">· {user.reviewsCount} отзывов</span>
-          </div>
-        )}
         <div className="chips" style={{ justifyContent: 'center' }}>
           <span className="badge-escrow">
             <CheckIcon size={12} />
@@ -113,27 +102,33 @@ export default function ProfilePage() {
               Проверенный фрилансер
             </span>
           ) : (
-            <span className="chip">Новичок · до статуса «Проверенный»: {Math.max(0, 3 - user.completedDeals)} сделки</span>
+            <span className="chip">
+              До статуса «Проверенный»: {Math.max(0, 3 - user.completedDeals)} сделки с эскроу
+            </span>
           )}
           {user.telegram && <span className="chip">Telegram</span>}
           {user.github && <span className="chip">GitHub</span>}
         </div>
       </div>
 
-      <div className="row" style={{ gap: 12 }}>
-        <div className="card" style={{ flex: 1, textAlign: 'center' }}>
-          <div className="budget">{user.completedDeals}</div>
-          <div className="small muted">сделок завершено</div>
+      <div className="stats-row">
+        <div className="stats-cell">
+          <div className="num">{user.completedDeals}</div>
+          <div className="caption">сделок с эскроу</div>
         </div>
-        <div className="card" style={{ flex: 1, textAlign: 'center' }}>
-          <div className="budget">{user.rating > 0 ? user.rating.toFixed(1) : '—'}</div>
-          <div className="small muted">рейтинг</div>
+        <div className="stats-cell">
+          <div className="num">{user.rating > 0 ? user.rating.toFixed(1) : '—'}</div>
+          <div className="caption">рейтинг</div>
+        </div>
+        <div className="stats-cell">
+          <div className="num">{user.reviewsCount}</div>
+          <div className="caption">отзывов</div>
         </div>
       </div>
 
       {user.skills?.length > 0 && !editing && (
-        <div className="card stack" style={{ gap: 8 }}>
-          <div className="eyebrow">Навыки</div>
+        <section className="stack" style={{ gap: 8 }}>
+          <div className="h-sec">Навыки</div>
           <div className="chips">
             {user.skills.map((s) => (
               <span key={s} className="chip">
@@ -141,14 +136,14 @@ export default function ProfilePage() {
               </span>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {user.bio && !editing && (
-        <div className="card stack" style={{ gap: 6 }}>
-          <div className="eyebrow">О себе</div>
+        <section className="stack" style={{ gap: 6 }}>
+          <div className="h-sec">О себе</div>
           <p className="small">{user.bio}</p>
-        </div>
+        </section>
       )}
 
       {error && <div className="form-error">{error}</div>}
@@ -163,7 +158,7 @@ export default function ProfilePage() {
           </button>
         </>
       ) : (
-        <form className="card stack" onSubmit={save}>
+        <form className="stack section" onSubmit={save}>
           <div className="field">
             <label>Имя</label>
             <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />

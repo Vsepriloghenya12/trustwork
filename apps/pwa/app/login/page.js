@@ -76,7 +76,7 @@ export default function LoginPage() {
       </div>
 
       {step === 'phone' && (
-        <form className="card stack" onSubmit={requestCode}>
+        <form className="stack" onSubmit={requestCode}>
           <div className="field">
             <label htmlFor="phone">Номер телефона</label>
             <input
@@ -98,23 +98,29 @@ export default function LoginPage() {
       )}
 
       {step === 'phone' && (
-        <ul className="trust-list card">
+        <ul className="trust-list" style={{ marginTop: 12 }}>
           <li>
-            <LockIcon size={16} />
+            <span className="trust-ico">
+              <LockIcon size={16} />
+            </span>
             <span>
               <b>Эскроу-защита оплаты.</b> Заказчик может заморозить бюджет на платформе — такие
               проекты получают бейдж «Оплата гарантирована», и деньги уже ждут исполнителя.
             </span>
           </li>
           <li>
-            <StarIcon size={16} />
+            <span className="trust-ico">
+              <StarIcon size={16} />
+            </span>
             <span>
               <b>Честные рейтинги.</b> Заказчиков оценивают только фрилансеры после реального
               диалога — фейковые отзывы здесь не работают.
             </span>
           </li>
           <li>
-            <CheckIcon size={16} />
+            <span className="trust-ico">
+              <CheckIcon size={16} />
+            </span>
             <span>
               <b>Отклики бесплатны.</b> Никаких платных поднятий — платформа берет комиссию только
               с успешной сделки.
@@ -124,7 +130,7 @@ export default function LoginPage() {
       )}
 
       {step === 'code' && (
-        <form className="card stack" onSubmit={verify}>
+        <form className="stack" onSubmit={verify}>
           <div className="field">
             <label htmlFor="code">Код из SMS</label>
             <input
@@ -151,8 +157,8 @@ export default function LoginPage() {
       )}
 
       {step === 'profile' && (
-        <form className="card stack" onSubmit={saveProfile}>
-          <div className="page-title">Расскажите о себе</div>
+        <form className="stack" onSubmit={saveProfile}>
+          <div className="title-lg">Расскажите о себе</div>
           <div className="row" style={{ gap: 10 }}>
             {[
               { value: 'FREELANCER', label: 'Я фрилансер', hint: 'Ищу проекты' },
@@ -162,12 +168,13 @@ export default function LoginPage() {
                 key={opt.value}
                 type="button"
                 onClick={() => setRole(opt.value)}
-                className="card stack"
+                className="stack"
                 style={{
                   flex: 1,
                   gap: 2,
-                  boxShadow: 'none',
                   textAlign: 'left',
+                  padding: 14,
+                  borderRadius: 16,
                   border:
                     role === opt.value
                       ? '2px solid var(--c-primary)'
