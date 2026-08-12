@@ -74,7 +74,7 @@ export default function ChatsPage() {
               {t.project.title}
             </div>
           </div>
-          {['FUNDED', 'IN_PROGRESS'].includes(t.project.status) && (
+          {t.project.escrowActive && (
             <span className="badge-escrow">
               <LockIcon size={12} />
               {t.project.budget ? formatMoney(t.project.budget, t.project.currency) : 'эскроу'}

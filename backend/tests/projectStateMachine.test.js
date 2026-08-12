@@ -6,12 +6,18 @@ import {
   assertTransition,
 } from '../src/services/projectStateMachine.js'
 
-test('заморозка бюджета возможна из DRAFT и PENDING_PAYMENT', () => {
+test('публикация: бесплатно (OPEN) или сразу с эскроу (FUNDED)', () => {
+  assert.ok(canTransition('DRAFT', 'OPEN'))
   assert.ok(canTransition('DRAFT', 'FUNDED'))
-  assert.ok(canTransition('PENDING_PAYMENT', 'FUNDED'))
 })
 
-test('в работу проект уходит только из FUNDED', () => {
+test('эскроу можно подключить к уже открытому проекту', () => {
+  assert.ok(canTransition('OPEN', 'FUNDED'))
+  assert.ok(!canTransition('IN_PROGRESS', 'FUNDED'))
+})
+
+test('в работу проект уходит из OPEN и FUNDED, но не из черновика', () => {
+  assert.ok(canTransition('OPEN', 'IN_PROGRESS'))
   assert.ok(canTransition('FUNDED', 'IN_PROGRESS'))
   assert.ok(!canTransition('DRAFT', 'IN_PROGRESS'))
   assert.ok(!canTransition('PENDING_PAYMENT', 'IN_PROGRESS'))

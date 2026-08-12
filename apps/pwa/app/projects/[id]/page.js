@@ -18,17 +18,31 @@ import { api, getUser, formatMoney, formatDate } from '@/lib/api'
 const STATUS_LABELS = {
   DRAFT: 'Черновик',
   PENDING_PAYMENT: 'Ожидает оплаты',
+  OPEN: 'Открыт набор',
   FUNDED: 'Открыт набор',
   IN_PROGRESS: 'В работе',
   COMPLETED: 'Завершен',
   CANCELLED: 'Отменен',
 }
 
+// Должен совпадать со списком REVIEW_TAGS на сервере
+const REVIEW_TAGS = [
+  'не отвечает',
+  'просит бесплатное тестовое',
+  'уводит в мессенджер',
+  'вежливое общение',
+  'конкретное ТЗ',
+  'быстро отвечает',
+]
+
+const APPLIABLE = ['OPEN', 'FUNDED']
+
 export default function ProjectPage() {
   const { id } = useParams()
   const router = useRouter()
   const [project, setProject] = useState(null)
   const [applications, setApplications] = useState(null)
+  const [clientReviews, setClientReviews] = useState(null)
   const [user, setUser] = useState(null)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
@@ -36,6 +50,11 @@ export default function ProjectPage() {
   const [pitchOpen, setPitchOpen] = useState(false)
   const [pitch, setPitch] = useState('')
   const [pitchSent, setPitchSent] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewTags, setReviewTags] = useState([])
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewDone, setReviewDone] = useState(false)
 
   const load = useCallback(() => {
     api(`/api/projects/${id}`)
@@ -52,10 +71,18 @@ export default function ProjectPage() {
   const isAssignee = user && project && project.freelancer?.id === user.id
 
   useEffect(() => {
-    if (isOwner && ['FUNDED', 'IN_PROGRESS'].includes(project?.status)) {
+    if (isOwner && ['OPEN', 'FUNDED', 'IN_PROGRESS'].includes(project?.status)) {
       api(`/api/projects/${id}/applications`).then(setApplications).catch(() => {})
     }
   }, [isOwner, project?.status, id])
+
+  useEffect(() => {
+    if (project?.client?.id) {
+      api(`/api/users/${project.client.id}/reviews`)
+        .then((r) => setClientReviews(r.summary))
+        .catch(() => {})
+    }
+  }, [project?.client?.id])
 
   async function act(fn) {
     setBusy(true)
@@ -70,10 +97,11 @@ export default function ProjectPage() {
     }
   }
 
+  const publish = () => act(() => api(`/api/projects/${id}/publish`, { method: 'POST' }))
   const fund = () => act(() => api(`/api/projects/${id}/fund`, { method: 'POST' }))
   const complete = () => act(() => api(`/api/projects/${id}/complete`, { method: 'POST' }))
   const cancel = () => {
-    if (!confirm('Отменить проект? Замороженные средства вернутся вам.')) return
+    if (!confirm('Отменить проект? Если бюджет был заморожен — он вернется вам.')) return
     act(() => api(`/api/projects/${id}/cancel`, { method: 'POST' }))
   }
   const accept = (appId) =>
@@ -96,6 +124,39 @@ export default function ProjectPage() {
     }
   }
 
+  const isDealReview = project?.status === 'COMPLETED' && isAssignee
+
+  async function sendReview(e) {
+    e.preventDefault()
+    setBusy(true)
+    setActionError('')
+    try {
+      await api(`/api/projects/${id}/reviews`, {
+        method: 'POST',
+        body: {
+          ...(isDealReview ? { rating: reviewRating } : {}),
+          tags: reviewTags,
+          ...(reviewComment.trim() ? { comment: reviewComment.trim() } : {}),
+        },
+      })
+      setReviewOpen(false)
+      setReviewDone(true)
+      api(`/api/users/${project.client.id}/reviews`)
+        .then((r) => setClientReviews(r.summary))
+        .catch(() => {})
+    } catch (e) {
+      setActionError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function toggleReviewTag(tag) {
+    setReviewTags((tags) =>
+      tags.includes(tag) ? tags.filter((t) => t !== tag) : tags.length < 3 ? [...tags, tag] : tags,
+    )
+  }
+
   if (error) {
     return (
       <main className="shell stack">
@@ -113,53 +174,86 @@ export default function ProjectPage() {
     )
   }
 
+  const topTags = clientReviews
+    ? Object.entries(clientReviews.tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+    : []
+
   return (
     <main className="shell stack">
       <TopRow onBack={() => router.back()} status={STATUS_LABELS[project.status]} />
 
       <h1 className="page-title" style={{ fontSize: 21 }}>{project.title}</h1>
 
-      <div className="card row" style={{ gap: 10 }}>
-        <Avatar name={project.client.name} size={44} />
-        <div style={{ flex: 1 }}>
-          <div className="row" style={{ gap: 5 }}>
-            <span style={{ fontWeight: 800, fontSize: 14 }}>
-              {project.client.name || 'Заказчик'}
-            </span>
-            {project.client.isVerified && (
-              <span style={{ color: 'var(--c-primary)', display: 'inline-flex' }}>
-                <VerifiedIcon />
+      <div className="card stack" style={{ gap: 10 }}>
+        <div className="row" style={{ gap: 10 }}>
+          <Avatar name={project.client.name} size={44} />
+          <div style={{ flex: 1 }}>
+            <div className="row" style={{ gap: 5 }}>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>
+                {project.client.name || 'Заказчик'}
               </span>
-            )}
-          </div>
-          <div className="small muted row" style={{ gap: 4 }}>
-            {project.client.reviewsCount > 0 ? (
-              <>
-                <span style={{ color: '#f5a623', display: 'inline-flex' }}>
-                  <StarIcon size={12} />
+              {project.client.isVerified && (
+                <span style={{ color: 'var(--c-primary)', display: 'inline-flex' }}>
+                  <VerifiedIcon />
                 </span>
-                {project.client.rating.toFixed(1)} · {project.client.reviewsCount} отзывов
-              </>
-            ) : (
-              'Новый заказчик'
-            )}
+              )}
+            </div>
+            <div className="small muted row" style={{ gap: 4 }}>
+              {project.client.reviewsCount > 0 ? (
+                <>
+                  <span style={{ color: '#f5a623', display: 'inline-flex' }}>
+                    <StarIcon size={12} />
+                  </span>
+                  {project.client.rating.toFixed(1)} · {project.client.reviewsCount} оценок сделок
+                </>
+              ) : (
+                'Без оценок за сделки'
+              )}
+            </div>
           </div>
+          {user && !isOwner && !reviewDone && (
+            <button className="btn btn--ghost btn--compact" onClick={() => setReviewOpen(true)}>
+              Оценить
+            </button>
+          )}
+          {reviewDone && <span className="status-pill">Отзыв учтен</span>}
         </div>
+        {topTags.length > 0 && (
+          <div className="chips">
+            {topTags.map(([tag, count]) => (
+              <span key={tag} className="chip">
+                {tag} ×{count}
+              </span>
+            ))}
+          </div>
+        )}
+        {clientReviews && (clientReviews.dialogCount > 0 || clientReviews.dealCount > 0) && (
+          <div className="small muted">
+            Отзывы фрилансеров: {clientReviews.dealCount} за сделки, {clientReviews.dialogCount} после
+            диалогов
+          </div>
+        )}
       </div>
 
-      {project.escrowActive || project.status === 'COMPLETED' ? (
+      {project.escrowActive || project.escrowReleased ? (
         <div className="escrow-panel">
           <div className="escrow-panel__title">
             <LockIcon size={16} />
             Безопасная сделка: {formatMoney(project.budget, project.currency)}{' '}
-            {project.status === 'COMPLETED' ? 'выплачено исполнителю' : 'заморожено в эскроу'}
+            {project.escrowReleased ? 'выплачено исполнителю' : 'заморожено в эскроу'}
           </div>
-          <EscrowTimeline status={project.status} />
+          <EscrowTimeline status={project.status === 'OPEN' ? 'FUNDED' : project.status} />
         </div>
       ) : (
-        <div className="card small muted">
-          Бюджет еще не заморожен — проект не виден фрилансерам.
-        </div>
+        project.status !== 'DRAFT' && (
+          <div className="card small muted">
+            {project.status === 'COMPLETED'
+              ? 'Сделка завершена. Оплата проходила напрямую, без эскроу.'
+              : 'Бюджет не заморожен — оплата напрямую по договоренности. Эскроу подключает заказчик: тогда платформа гарантирует оплату.'}
+          </div>
+        )
       )}
 
       <div className="chips">
@@ -186,17 +280,17 @@ export default function ProjectPage() {
         <p style={{ whiteSpace: 'pre-wrap', fontSize: 14.5 }}>{project.description}</p>
       </div>
 
-      {actionError && <div className="form-error">{actionError}</div>}
+      {actionError && !pitchOpen && !reviewOpen && <div className="form-error">{actionError}</div>}
 
       {/* ---- Действия по ролям ---- */}
 
-      {!user && (
+      {!user && APPLIABLE.includes(project.status) && (
         <Link href="/login" className="btn btn--primary">
           Войти, чтобы предложить себя
         </Link>
       )}
 
-      {user && !isOwner && project.status === 'FUNDED' && !pitchSent && !isAssignee && (
+      {user && !isOwner && APPLIABLE.includes(project.status) && !pitchSent && !isAssignee && (
         <button className="btn btn--primary" onClick={() => setPitchOpen(true)}>
           Предложить себя
         </button>
@@ -218,16 +312,26 @@ export default function ProjectPage() {
         <>
           <button className="btn btn--green" onClick={fund} disabled={busy}>
             <LockIcon size={16} />
-            Заморозить {formatMoney(project.budget, project.currency)} в эскроу
+            Опубликовать с эскроу — {formatMoney(project.budget, project.currency)}
+          </button>
+          <button className="btn btn--ghost" onClick={publish} disabled={busy}>
+            Опубликовать без эскроу
           </button>
           <p className="small muted" style={{ textAlign: 'center' }}>
-            После заморозки проект попадет в ленту с бейджем «Оплата гарантирована».
+            С эскроу проект получает бейдж «Оплата гарантирована» и показывается выше в ленте.
+            Публикация без эскроу бесплатна, заморозить бюджет можно позже.
           </p>
         </>
       )}
 
-      {isOwner && project.status === 'FUNDED' && (
+      {isOwner && APPLIABLE.includes(project.status) && (
         <section className="stack">
+          {project.status === 'OPEN' && (
+            <button className="btn btn--green" onClick={fund} disabled={busy}>
+              <LockIcon size={16} />
+              Подключить эскроу — бейдж «Оплата гарантирована»
+            </button>
+          )}
           <div className="eyebrow">Отклики {applications ? `· ${applications.length}` : ''}</div>
           {applications?.length === 0 && (
             <div className="card small muted">
@@ -267,7 +371,7 @@ export default function ProjectPage() {
             </div>
           ))}
           <button className="btn btn--outline-danger" onClick={cancel} disabled={busy}>
-            Отменить проект и вернуть деньги
+            Отменить проект
           </button>
         </section>
       )}
@@ -279,17 +383,21 @@ export default function ProjectPage() {
             Чат с исполнителем
           </Link>
           <button className="btn btn--green" onClick={complete} disabled={busy}>
-            Принять работу и оплатить
+            {project.escrowActive ? 'Принять работу и оплатить' : 'Принять работу'}
           </button>
           <p className="small muted" style={{ textAlign: 'center' }}>
-            Деньги уйдут исполнителю сразу после подтверждения.
+            {project.escrowActive
+              ? 'Деньги уйдут исполнителю сразу после подтверждения.'
+              : 'Эскроу не подключен — оплату вы проводите напрямую.'}
           </p>
         </>
       )}
 
       {project.status === 'COMPLETED' && (
         <div className="card row" style={{ justifyContent: 'center', gap: 6 }}>
-          <span className="badge-escrow">Сделка завершена · оплата выплачена</span>
+          <span className="badge-escrow">
+            {project.escrowReleased ? 'Сделка завершена · оплата выплачена' : 'Сделка завершена'}
+          </span>
         </div>
       )}
 
@@ -312,6 +420,67 @@ export default function ProjectPage() {
             {actionError && <div className="form-error">{actionError}</div>}
             <button className="btn btn--primary" disabled={busy || pitch.trim().length < 10}>
               Отправить питч
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ---- Шторка оценки заказчика ---- */}
+      {reviewOpen && (
+        <div className="sheet-backdrop" onClick={() => setReviewOpen(false)}>
+          <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendReview}>
+            <div className="page-title">Оценить заказчика</div>
+            {isDealReview ? (
+              <>
+                <p className="small muted">Сделка завершена — ваша оценка попадет в рейтинг.</p>
+                <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setReviewRating(n)}
+                      aria-label={`Оценка ${n}`}
+                      style={{
+                        color: n <= reviewRating ? '#f5a623' : 'var(--c-line)',
+                        display: 'inline-flex',
+                        padding: 4,
+                      }}
+                    >
+                      <StarIcon size={30} />
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="small muted">
+                Отметьте факты о общении (до 3). Звезды станут доступны после завершенной сделки.
+              </p>
+            )}
+            <div className="chips">
+              {REVIEW_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`chip${reviewTags.includes(tag) ? ' chip--active' : ''}`}
+                  onClick={() => toggleReviewTag(tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            <textarea
+              className="input"
+              rows={3}
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Комментарий (необязательно)"
+            />
+            {actionError && <div className="form-error">{actionError}</div>}
+            <button
+              className="btn btn--primary"
+              disabled={busy || (isDealReview ? reviewRating === 0 : reviewTags.length === 0)}
+            >
+              Отправить отзыв
             </button>
           </form>
         </div>

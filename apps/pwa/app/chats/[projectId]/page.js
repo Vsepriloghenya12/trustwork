@@ -87,17 +87,22 @@ function ChatPage() {
           </div>
         </div>
 
-        {project && (project.escrowActive || project.status === 'COMPLETED') && (
-          <div className="escrow-panel" style={{ padding: '10px 14px' }}>
-            <div className="escrow-panel__title" style={{ fontSize: 13 }}>
-              <LockIcon size={14} />
-              {project.status === 'COMPLETED'
-                ? `Сделка завершена · ${formatMoney(project.budget, project.currency)} выплачено`
-                : `Эскроу активен · ${formatMoney(project.budget, project.currency)} заморожено`}
+        {project &&
+          (project.escrowActive || project.escrowReleased ? (
+            <div className="escrow-panel" style={{ padding: '10px 14px' }}>
+              <div className="escrow-panel__title" style={{ fontSize: 13 }}>
+                <LockIcon size={14} />
+                {project.escrowReleased
+                  ? `Сделка завершена · ${formatMoney(project.budget, project.currency)} выплачено`
+                  : `Эскроу активен · ${formatMoney(project.budget, project.currency)} заморожено`}
+              </div>
+              <EscrowTimeline status={project.status === 'OPEN' ? 'FUNDED' : project.status} />
             </div>
-            <EscrowTimeline status={project.status} />
-          </div>
-        )}
+          ) : (
+            <div className="small muted" style={{ padding: '2px 2px 8px' }}>
+              Эскроу не подключен — оплата напрямую. Фиксируйте договоренности в этом чате.
+            </div>
+          ))}
       </div>
 
       <div className="chat-messages">

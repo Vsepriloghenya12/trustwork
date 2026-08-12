@@ -121,7 +121,7 @@ export default function NewProjectPage() {
         </button>
         <p className="small muted row" style={{ gap: 6, justifyContent: 'center' }}>
           <LockIcon />
-          Следующий шаг — заморозка бюджета. Без нее проект не публикуется.
+          Публикация бесплатна. Эскроу даст бейдж «Оплата гарантирована» и приоритет в ленте.
         </p>
       </form>
     </main>

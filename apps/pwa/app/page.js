@@ -42,7 +42,10 @@ export default function FeedPage() {
         </div>
       </header>
 
-      <div className="eyebrow">Проекты с защищенной оплатой</div>
+      <div className="eyebrow">Лента проектов</div>
+      <p className="small muted" style={{ marginTop: -6 }}>
+        Проекты с бейджем «Оплата в эскроу» — бюджет уже заморожен платформой, они выше в ленте.
+      </p>
 
       {error && <div className="form-error">{error}</div>}
       {projects === null && !error && <div className="muted small">Загружаем ленту…</div>}
@@ -53,9 +56,7 @@ export default function FeedPage() {
             <FeedIcon />
           </span>
           <h3>Пока пусто</h3>
-          <p className="small">
-            Здесь появятся проекты, у которых бюджет уже заморожен в эскроу.
-          </p>
+          <p className="small">Здесь появятся проекты заказчиков.</p>
           {user?.role === 'CLIENT' && (
             <Link href="/projects/new" className="btn btn--primary" style={{ marginTop: 16 }}>
               Создать первый проект

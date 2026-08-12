@@ -2,17 +2,23 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
-import { fundProject, releaseEscrow, refundEscrow } from '../services/escrow.js'
+import { fundProject, completeProject, refundEscrow } from '../services/escrow.js'
 import { maskContacts } from '../services/moderation.js'
+import { assertTransition } from '../services/projectStateMachine.js'
+import { REVIEW_TAGS, determineReviewKind, recalcClientRating } from '../services/reviews.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
 
-const projectInclude = { client: true, freelancer: true }
+const projectInclude = { client: true, freelancer: true, transactions: true }
 
 // Статусы, видимые всем в ленте и по прямой ссылке
-const PUBLIC_STATUSES = ['FUNDED', 'IN_PROGRESS', 'COMPLETED']
+const PUBLIC_STATUSES = ['OPEN', 'FUNDED', 'IN_PROGRESS', 'COMPLETED']
+
+// Отклики принимаются на любой опубликованный проект — с эскроу и без
+const APPLIABLE_STATUSES = ['OPEN', 'FUNDED']
 
 function serializeProject(p) {
+  const transactions = p.transactions ?? []
   return {
     id: p.id,
     title: p.title,
@@ -22,8 +28,10 @@ function serializeProject(p) {
     tags: p.tags,
     deadline: p.deadline,
     status: p.status,
-    // бейдж «Оплата гарантирована»: бюджет заморожен в эскроу
-    escrowActive: p.status === 'FUNDED' || p.status === 'IN_PROGRESS',
+    // бейдж «Оплата гарантирована»: бюджет прямо сейчас заморожен в эскроу
+    escrowActive: transactions.some((t) => t.status === 'HOLDED'),
+    // сделка завершена с выплатой через эскроу
+    escrowReleased: transactions.some((t) => t.status === 'RELEASED'),
     client: publicUser(p.client),
     freelancer: p.freelancer ? publicUser(p.freelancer) : null,
     createdAt: p.createdAt,
@@ -53,7 +61,7 @@ projectsRouter.get('/', async (req, res) => {
     })
     .parse(req.query)
   const where = {
-    status: 'FUNDED',
+    status: { in: APPLIABLE_STATUSES },
     ...(q.tag ? { tags: { has: q.tag } } : {}),
     ...(q.search
       ? {
@@ -67,7 +75,8 @@ projectsRouter.get('/', async (req, res) => {
   const projects = await prisma.project.findMany({
     where,
     include: projectInclude,
-    orderBy: { createdAt: 'desc' },
+    // status asc: FUNDED раньше OPEN в порядке enum — проекты с эскроу выше в ленте
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     take: q.take,
     skip: q.skip,
   })
@@ -111,7 +120,17 @@ projectsRouter.get('/:id', optionalAuth, async (req, res) => {
   res.json(serializeProject(project))
 })
 
-// Заморозка бюджета — без нее проект не попадает в ленту
+// Публикация без эскроу: проект попадает в ленту, но без бейджа «Оплата гарантирована»
+projectsRouter.post('/:id/publish', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id)
+  assertOwner(project, req.user)
+  assertTransition(project.status, 'OPEN')
+  await prisma.project.update({ where: { id: project.id }, data: { status: 'OPEN' } })
+  res.json(serializeProject(await getProject(project.id)))
+})
+
+// Заморозка бюджета (из черновика или уже открытого проекта):
+// бейдж «Оплата гарантирована» и приоритет в ленте
 projectsRouter.post('/:id/fund', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
@@ -119,11 +138,11 @@ projectsRouter.post('/:id/fund', requireAuth, async (req, res) => {
   res.json(serializeProject(await getProject(project.id)))
 })
 
-// Приемка работы заказчиком: деньги уходят фрилансеру
+// Приемка работы заказчиком: при эскроу деньги уходят фрилансеру
 projectsRouter.post('/:id/complete', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
-  await releaseEscrow(project)
+  await completeProject(project)
   res.json(serializeProject(await getProject(project.id)))
 })
 
@@ -142,8 +161,8 @@ projectsRouter.post('/:id/applications', requireAuth, async (req, res) => {
   const { pitch } = z.object({ pitch: z.string().min(10).max(1000) }).parse(req.body)
   const project = await getProject(req.params.id)
   if (project.clientId === req.user.id) throw new ApiError(400, 'Нельзя откликнуться на свой проект')
-  if (project.status !== 'FUNDED') {
-    throw new ApiError(409, 'Отклики принимаются только на проекты с замороженным бюджетом')
+  if (!APPLIABLE_STATUSES.includes(project.status)) {
+    throw new ApiError(409, 'Проект не принимает отклики')
   }
   try {
     const application = await prisma.application.create({
@@ -204,6 +223,69 @@ projectsRouter.post('/:id/messages', requireAuth, async (req, res) => {
     data: { projectId: project.id, senderId: req.user.id, recipientId: peerId, text, wasMasked },
   })
   res.status(201).json(message)
+})
+
+// Оценка заказчика. Гейт: реальный диалог по проекту. После диалога — факт-теги,
+// после завершенной сделки (для исполнителя) — звезды. Повторная оценка проекта
+// возможна только как «апгрейд» DIALOG → DEAL.
+projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
+  const body = z
+    .object({
+      rating: z.number().int().min(1).max(5).optional(),
+      tags: z.array(z.enum(REVIEW_TAGS)).max(3).default([]),
+      comment: z.string().max(500).optional(),
+    })
+    .parse(req.body)
+  const project = await getProject(req.params.id)
+  if (project.clientId === req.user.id) throw new ApiError(400, 'Нельзя оценить самого себя')
+
+  const hasDialog = await prisma.message.findFirst({
+    where: {
+      projectId: project.id,
+      OR: [
+        { senderId: req.user.id, recipientId: project.clientId },
+        { senderId: project.clientId, recipientId: req.user.id },
+      ],
+    },
+  })
+  if (!hasDialog) throw new ApiError(403, 'Оценка доступна после диалога с заказчиком')
+
+  const kind = determineReviewKind(project, req.user.id)
+  if (kind === 'DEAL' && !body.rating) throw new ApiError(400, 'Поставьте оценку от 1 до 5')
+  if (kind === 'DIALOG') {
+    if (body.rating) {
+      throw new ApiError(400, 'Звезды доступны после завершенной сделки — сейчас можно оставить факт-теги')
+    }
+    if (body.tags.length === 0) throw new ApiError(400, 'Выберите хотя бы один тег')
+  }
+
+  const existing = await prisma.review.findUnique({
+    where: { projectId_authorId: { projectId: project.id, authorId: req.user.id } },
+  })
+  let review
+  if (existing) {
+    if (existing.kind === 'DEAL' || kind === 'DIALOG') {
+      throw new ApiError(409, 'Вы уже оценили заказчика по этому проекту')
+    }
+    review = await prisma.review.update({
+      where: { id: existing.id },
+      data: { kind, rating: body.rating, tags: body.tags, comment: body.comment },
+    })
+  } else {
+    review = await prisma.review.create({
+      data: {
+        kind,
+        rating: body.rating,
+        tags: body.tags,
+        comment: body.comment,
+        projectId: project.id,
+        clientId: project.clientId,
+        authorId: req.user.id,
+      },
+    })
+  }
+  if (kind === 'DEAL') await recalcClientRating(project.clientId)
+  res.status(201).json(review)
 })
 
 async function resolvePeer(project, user, withId) {

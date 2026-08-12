@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api, setSession, updateStoredUser } from '@/lib/api'
-import { LockIcon, CheckIcon, ShieldIcon } from '@/components/Icons'
+import { LockIcon, CheckIcon, StarIcon } from '@/components/Icons'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -102,22 +102,22 @@ export default function LoginPage() {
           <li>
             <LockIcon size={16} />
             <span>
-              <b>Оплата гарантирована.</b> Заказчик замораживает бюджет в эскроу до начала работы —
-              деньги уже ждут исполнителя.
+              <b>Эскроу-защита оплаты.</b> Заказчик может заморозить бюджет на платформе — такие
+              проекты получают бейдж «Оплата гарантирована», и деньги уже ждут исполнителя.
+            </span>
+          </li>
+          <li>
+            <StarIcon size={16} />
+            <span>
+              <b>Честные рейтинги.</b> Заказчиков оценивают только фрилансеры после реального
+              диалога — фейковые отзывы здесь не работают.
             </span>
           </li>
           <li>
             <CheckIcon size={16} />
             <span>
-              <b>Отклики бесплатны.</b> Никаких платных поднятий и «лотерейных билетов» — платформа
-              берет комиссию только с успешной сделки.
-            </span>
-          </li>
-          <li>
-            <ShieldIcon size={16} />
-            <span>
-              <b>Сделка под защитой.</b> Переписка и файлы хранятся на платформе, спор решает
-              арбитраж.
+              <b>Отклики бесплатны.</b> Никаких платных поднятий — платформа берет комиссию только
+              с успешной сделки.
             </span>
           </li>
         </ul>

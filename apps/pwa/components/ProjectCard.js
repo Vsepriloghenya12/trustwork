@@ -7,10 +7,14 @@ export default function ProjectCard({ project }) {
   return (
     <Link href={`/projects/${project.id}`} className="card stack" style={{ gap: 10 }}>
       <div className="row row--between">
-        <span className="badge-escrow">
-          <LockIcon />
-          Оплата в эскроу
-        </span>
+        {project.escrowActive ? (
+          <span className="badge-escrow">
+            <LockIcon />
+            Оплата в эскроу
+          </span>
+        ) : (
+          <span className="chip" style={{ color: 'var(--c-muted)' }}>Эскроу не подключен</span>
+        )}
         <span className="small muted">{formatDate(project.createdAt)}</span>
       </div>
       <div className="card__title">{project.title}</div>

@@ -28,6 +28,17 @@ export async function fundProject(project) {
   })
 }
 
+// Приемка работы заказчиком. С эскроу — выплата и рост статистики фрилансера;
+// без эскроу — просто завершение (статус «Проверенный» засчитывают только сделки с эскроу).
+export async function completeProject(project) {
+  assertTransition(project.status, 'COMPLETED')
+  const held = await prisma.transaction.findFirst({
+    where: { projectId: project.id, status: 'HOLDED' },
+  })
+  if (held) return releaseEscrow(project)
+  return prisma.project.update({ where: { id: project.id }, data: { status: 'COMPLETED' } })
+}
+
 // Приемка работы заказчиком: capture платежа → Transaction RELEASED → проект COMPLETED
 export async function releaseEscrow(project) {
   assertTransition(project.status, 'COMPLETED')

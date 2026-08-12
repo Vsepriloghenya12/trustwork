@@ -31,3 +31,37 @@ usersRouter.get('/:id', async (req, res) => {
   if (!user) throw new ApiError(404, 'Пользователь не найден')
   res.json(publicUser(user))
 })
+
+// Отзывы о заказчике: сводка по факт-тегам + последние отзывы
+usersRouter.get('/:id/reviews', async (req, res) => {
+  const all = await prisma.review.findMany({
+    where: { clientId: req.params.id },
+    select: { kind: true, tags: true },
+  })
+  const tagCounts = {}
+  for (const r of all) {
+    for (const tag of r.tags) tagCounts[tag] = (tagCounts[tag] ?? 0) + 1
+  }
+  const recent = await prisma.review.findMany({
+    where: { clientId: req.params.id },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    include: { author: true },
+  })
+  res.json({
+    summary: {
+      dealCount: all.filter((r) => r.kind === 'DEAL').length,
+      dialogCount: all.filter((r) => r.kind === 'DIALOG').length,
+      tagCounts,
+    },
+    reviews: recent.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      rating: r.rating,
+      tags: r.tags,
+      comment: r.comment,
+      createdAt: r.createdAt,
+      author: { id: r.author.id, name: r.author.name },
+    })),
+  })
+})
