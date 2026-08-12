@@ -9,13 +9,29 @@ APK не нужно. Пересборка нужна только при сме�
 
 Требования: JDK 17, Android SDK (пути прописаны в `~/.bubblewrap/config.json`).
 
-```bash
-cd apps/android
-npx @bubblewrap/cli update --skipVersionUpgrade
-BUBBLEWRAP_KEYSTORE_PASSWORD=<из keystore-passwords.txt> BUBBLEWRAP_KEY_PASSWORD=<тот же> npx @bubblewrap/cli build
+**Особенность этого ПК:** у JDK не работают AF_UNIX-сокеты со стандартным temp-путем —
+без обходного флага Gradle падает с «Unable to establish loopback connection».
+Флаг уже прописан в `gradle.properties`, но также нужен в окружении (PowerShell):
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot'
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:JAVA_TOOL_OPTIONS = '-Djdk.net.unixdomain.tmpdir=D:\tmp'   # папка D:\tmp должна существовать
+cd D:\trustwork\apps\android
+npx @bubblewrap/cli update --skipVersionUpgrade   # регенерация проекта после правок twa-manifest.json
+.\gradlew.bat assembleRelease
 ```
 
-Результат: `app-release-signed.apk` (подписан, готов к установке и RuStore).
+Подпись (пароль — в `keystore-passwords.txt`):
+
+```powershell
+$bt = "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.1.0"
+& "$bt\zipalign.exe" -f -p 4 app\build\outputs\apk\release\app-release-unsigned.apk aligned.apk
+& "$bt\apksigner.bat" sign --ks android.keystore --ks-key-alias trustwork --ks-pass pass:<ПАРОЛЬ> --key-pass pass:<ПАРОЛЬ> --out TrustWork-X.Y.Z.apk aligned.apk
+```
+
+Внимание: `bubblewrap update` перезаписывает `gradle.properties` — после него
+вернуть туда строку `org.gradle.jvmargs=-Xmx1536m -Djdk.net.unixdomain.tmpdir=D:\\tmp`.
 
 ## Ключ подписи — КРИТИЧНО
 
