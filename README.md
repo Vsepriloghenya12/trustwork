@@ -46,10 +46,11 @@ cd backend && npm test
 | POST | `/api/auth/verify` | Подтвердить код → JWT-токен |
 | GET/PATCH | `/api/users/me` | Свой профиль (имя, роль, навыки, Telegram/GitHub) |
 | GET | `/api/users/:id` | Публичный профиль |
-| GET | `/api/projects` | Лента (только проекты с эскроу; фильтры `tag`, `search`) |
+| GET | `/api/projects` | Лента: OPEN + FUNDED, проекты с эскроу выше (фильтры `tag`, `search`) |
 | POST | `/api/projects` | Создать проект (статус DRAFT) |
 | GET | `/api/projects/mine` | Мои проекты (как заказчик и как исполнитель) |
-| POST | `/api/projects/:id/fund` | Заморозить бюджет в эскроу → проект попадает в ленту |
+| POST | `/api/projects/:id/publish` | Опубликовать без эскроу (статус OPEN) |
+| POST | `/api/projects/:id/fund` | Заморозить бюджет в эскроу (бейдж + приоритет в ленте) |
 | POST | `/api/projects/:id/applications` | «Предложить себя» (питч) |
 | GET | `/api/projects/:id/applications` | Отклики на проект (для заказчика) |
 | POST | `/api/applications/:id/accept` | Выбрать исполнителя → проект в работе |
@@ -57,7 +58,11 @@ cd backend && npm test
 | GET | `/api/applications/mine` | Мои отклики (для фрилансера) |
 | POST | `/api/projects/:id/complete` | Принять работу → выплата из эскроу |
 | POST | `/api/projects/:id/cancel` | Отменить проект → возврат средств |
-| GET/POST | `/api/projects/:id/messages` | Чат сделки (контакты скрываются автоматически) |
+| GET/POST | `/api/projects/:id/messages` | Чат сделки (контакты скрываются; открытие отмечает прочитанным) |
+| POST | `/api/projects/:id/reviews` | Оценка: фрилансер → заказчик (теги/звезды), заказчик → исполнитель (звезды) |
+| GET | `/api/users/:id/reviews` | Отзывы о пользователе: сводка тегов + список |
+| GET | `/api/users/me/unread` | Счетчики непрочитанных сообщений |
+| POST | `/api/payments/yookassa/webhook` | Вебхук ЮKassa (подтверждение холда) |
 
 Авторизация: заголовок `Authorization: Bearer <token>`.
 
@@ -66,9 +71,11 @@ cd backend && npm test
 ## Что дальше (дорожная карта)
 
 - [x] Спецификация, репозиторий
-- [x] Prisma-схема (User, Project, Application, Transaction, Message)
-- [x] API: авторизация по телефону, проекты, эскроу (мок-провайдер), отклики, чат с модерацией
-- [ ] Railway + PostgreSQL, первый деплой
-- [ ] Подключение реального платежного провайдера (ЮKassa/Stripe)
+- [x] Prisma-схема (User, Project, Application, Transaction, Message, Review)
+- [x] API: авторизация по телефону, проекты, эскроу (опционален), отклики, чат с модерацией, двусторонние отзывы
+- [x] Railway + PostgreSQL, деплой (backend + PWA)
+- [x] PWA (Next.js): лента, проекты, питчи, чаты с бейджами непрочитанного, профили
+- [x] Адаптер SMS.ru (включается `SMS_PROVIDER=sms_ru` + `SMSRU_API_KEY`)
+- [x] Адаптер ЮKassa (включается `PAYMENT_PROVIDER=yookassa` + ключи магазина; требует боевого теста на малых суммах)
+- [ ] Боевое включение SMS и платежей (нужны ключи владельца)
 - [ ] Android-приложение (React Native / Expo)
-- [ ] PWA для iOS (Next.js)
