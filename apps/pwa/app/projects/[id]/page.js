@@ -98,7 +98,12 @@ export default function ProjectPage() {
   }
 
   const publish = () => act(() => api(`/api/projects/${id}/publish`, { method: 'POST' }))
-  const fund = () => act(() => api(`/api/projects/${id}/fund`, { method: 'POST' }))
+  // Боевой провайдер вернет ссылку на страницу оплаты — уходим на нее
+  const fund = () =>
+    act(async () => {
+      const result = await api(`/api/projects/${id}/fund`, { method: 'POST' })
+      if (result.confirmationUrl) window.location.href = result.confirmationUrl
+    })
   const complete = () => act(() => api(`/api/projects/${id}/complete`, { method: 'POST' }))
   const cancel = () => {
     if (!confirm('Отменить проект? Если бюджет был заморожен — он вернется вам.')) return

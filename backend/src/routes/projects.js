@@ -134,8 +134,11 @@ projectsRouter.post('/:id/publish', requireAuth, async (req, res) => {
 projectsRouter.post('/:id/fund', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
-  await fundProject(project)
-  res.json(serializeProject(await getProject(project.id)))
+  const result = await fundProject(project)
+  res.json({
+    ...serializeProject(await getProject(project.id)),
+    ...(result.confirmationUrl ? { confirmationUrl: result.confirmationUrl } : {}),
+  })
 })
 
 // Приемка работы заказчиком: при эскроу деньги уходят фрилансеру
@@ -199,6 +202,11 @@ projectsRouter.get('/:id/applications', requireAuth, async (req, res) => {
 projectsRouter.get('/:id/messages', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   const peerId = await resolvePeer(project, req.user, req.query.with)
+  // Открытие диалога отмечает входящие от собеседника прочитанными
+  await prisma.message.updateMany({
+    where: { projectId: project.id, senderId: peerId, recipientId: req.user.id, readAt: null },
+    data: { readAt: new Date() },
+  })
   const messages = await prisma.message.findMany({
     where: {
       projectId: project.id,

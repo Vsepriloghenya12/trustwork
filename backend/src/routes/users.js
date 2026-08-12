@@ -26,6 +26,19 @@ usersRouter.patch('/me', requireAuth, async (req, res) => {
   res.json(privateUser(user))
 })
 
+// Непрочитанные сообщения: всего и по проектам (для бейджей в навигации и списке чатов)
+usersRouter.get('/me/unread', requireAuth, async (req, res) => {
+  const grouped = await prisma.message.groupBy({
+    by: ['projectId'],
+    where: { recipientId: req.user.id, readAt: null },
+    _count: true,
+  })
+  res.json({
+    total: grouped.reduce((sum, g) => sum + g._count, 0),
+    byProject: Object.fromEntries(grouped.map((g) => [g.projectId, g._count])),
+  })
+})
+
 usersRouter.get('/:id', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } })
   if (!user) throw new ApiError(404, 'Пользователь не найден')

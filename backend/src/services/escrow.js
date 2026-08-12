@@ -6,14 +6,35 @@ import { paymentProvider } from './payments/index.js'
 // После 3 успешных сделок фрилансер получает статус «Проверенный»
 const VERIFIED_DEALS_THRESHOLD = 3
 
-// Заморозка бюджета: холд у платежного провайдера → Transaction(HOLDED) → проект FUNDED
+// Заморозка бюджета. Мок холдит мгновенно → FUNDED. Боевой провайдер (ЮKassa)
+// возвращает ссылку подтверждения: платеж PENDING, проект PENDING_PAYMENT,
+// в FUNDED его переводит вебхук после оплаты пользователем.
 export async function fundProject(project) {
   assertTransition(project.status, 'FUNDED')
-  const { externalId } = await paymentProvider.hold({
+  const hold = await paymentProvider.hold({
     amount: project.budget,
     currency: project.currency,
+    description: `TrustWork: эскроу по проекту «${project.title}»`,
   })
-  return prisma.$transaction(async (tx) => {
+  if (hold.confirmationUrl) {
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.create({
+        data: {
+          projectId: project.id,
+          amount: project.budget,
+          currency: project.currency,
+          status: 'PENDING',
+          provider: paymentProvider.name,
+          externalId: hold.externalId,
+        },
+      })
+      if (project.status !== 'PENDING_PAYMENT') {
+        await tx.project.update({ where: { id: project.id }, data: { status: 'PENDING_PAYMENT' } })
+      }
+    })
+    return { confirmationUrl: hold.confirmationUrl }
+  }
+  await prisma.$transaction(async (tx) => {
     await tx.transaction.create({
       data: {
         projectId: project.id,
@@ -21,11 +42,12 @@ export async function fundProject(project) {
         currency: project.currency,
         status: 'HOLDED',
         provider: paymentProvider.name,
-        externalId,
+        externalId: hold.externalId,
       },
     })
-    return tx.project.update({ where: { id: project.id }, data: { status: 'FUNDED' } })
+    await tx.project.update({ where: { id: project.id }, data: { status: 'FUNDED' } })
   })
+  return {}
 }
 
 // Приемка работы заказчиком. С эскроу — выплата и рост статистики фрилансера;
@@ -76,6 +98,12 @@ export async function refundEscrow(project) {
     if (held) {
       await tx.transaction.update({ where: { id: held.id }, data: { status: 'REFUNDED' } })
     }
+    // Неподтвержденные платежи (redirect-флоу) закрываем без обращения к провайдеру:
+    // их нельзя отменить через API, они истекают сами
+    await tx.transaction.updateMany({
+      where: { projectId: project.id, status: 'PENDING' },
+      data: { status: 'REFUNDED' },
+    })
     return tx.project.update({ where: { id: project.id }, data: { status: 'CANCELLED' } })
   })
 }

@@ -36,10 +36,12 @@ enum ApplicationStatus {
   REJECTED
 }
 
+// PENDING добавлен в конец: порядок значений соответствует enum в Postgres
 enum TransactionStatus {
   HOLDED
   RELEASED
   REFUNDED
+  PENDING
 }
 
 model User {
@@ -141,18 +143,20 @@ model Transaction {
 }
 
 model Message {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   text        String
-  wasMasked   Boolean  @default(false)
+  wasMasked   Boolean   @default(false)
+  readAt      DateTime?
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id])
+  project     Project   @relation(fields: [projectId], references: [id])
   senderId    String
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id])
   recipientId String
-  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
-  createdAt   DateTime @default(now())
+  recipient   User      @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  createdAt   DateTime  @default(now())
 
   @@index([projectId, createdAt])
+  @@index([recipientId, readAt])
 }
 
 model VerificationCode {

@@ -10,6 +10,7 @@ import { api, getToken, getUser, formatMoney } from '@/lib/api'
 export default function ChatsPage() {
   const router = useRouter()
   const [threads, setThreads] = useState(null)
+  const [unread, setUnread] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -18,6 +19,9 @@ export default function ChatsPage() {
       return
     }
     const user = getUser()
+    api('/api/users/me/unread')
+      .then((r) => setUnread(r.byProject))
+      .catch(() => {})
     Promise.all([api('/api/projects/mine'), api('/api/applications/mine').catch(() => [])])
       .then(([mine, apps]) => {
         const result = []
@@ -77,6 +81,9 @@ export default function ChatsPage() {
               {t.project.title}
             </div>
           </div>
+          {unread?.[t.project.id] > 0 && (
+            <span className="unread-pill">{unread[t.project.id]}</span>
+          )}
           {t.project.escrowActive && (
             <span className="badge-escrow">
               <LockIcon size={12} />

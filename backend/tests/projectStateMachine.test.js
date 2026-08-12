@@ -16,6 +16,11 @@ test('эскроу можно подключить к уже открытому 
   assert.ok(!canTransition('IN_PROGRESS', 'FUNDED'))
 })
 
+test('redirect-оплата: открытый проект уходит в ожидание платежа и обратно в FUNDED', () => {
+  assert.ok(canTransition('OPEN', 'PENDING_PAYMENT'))
+  assert.ok(canTransition('PENDING_PAYMENT', 'FUNDED'))
+})
+
 test('в работу проект уходит из OPEN и FUNDED, но не из черновика', () => {
   assert.ok(canTransition('OPEN', 'IN_PROGRESS'))
   assert.ok(canTransition('FUNDED', 'IN_PROGRESS'))
