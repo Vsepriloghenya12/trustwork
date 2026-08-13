@@ -14,13 +14,14 @@
   "enableNotifications": false,
   "startUrl": "/",
   "iconUrl": "https://trustwork-pwa-production.up.railway.app/icons/icon-512.png",
+  "maskableIconUrl": "https://trustwork-pwa-production.up.railway.app/icons/maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
     "alias": "trustwork"
   },
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionName": "1.0.1",
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://trustwork-pwa-production.up.railway.app/manifest.webmanifest",
