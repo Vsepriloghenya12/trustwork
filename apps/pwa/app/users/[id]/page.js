@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Avatar from '@/components/Avatar'
 import { BackIcon, StarIcon, CheckIcon, VerifiedIcon } from '@/components/Icons'
 import { api, formatDate } from '@/lib/api'
+import { plural } from '@/lib/text'
 
 export default function PublicProfilePage() {
   const { id } = useParams()
@@ -86,7 +87,9 @@ export default function PublicProfilePage() {
             {user.role === 'CLIENT' ? (user.postedProjects ?? 0) : user.completedDeals}
           </div>
           <div className="caption">
-            {user.role === 'CLIENT' ? 'проектов размещено' : 'сделок с эскроу'}
+            {user.role === 'CLIENT'
+              ? plural(user.postedProjects ?? 0, 'проект размещен', 'проекта размещено', 'проектов размещено')
+              : plural(user.completedDeals, 'сделка с эскроу', 'сделки с эскроу', 'сделок с эскроу')}
           </div>
         </div>
         <div className="stats-cell">
@@ -95,7 +98,9 @@ export default function PublicProfilePage() {
         </div>
         <div className="stats-cell">
           <div className="num">{user.reviewsCount}</div>
-          <div className="caption">оценок сделок</div>
+          <div className="caption">
+            {plural(user.reviewsCount, 'оценка за сделку', 'оценки за сделки', 'оценок за сделки')}
+          </div>
         </div>
       </div>
 

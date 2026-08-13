@@ -15,6 +15,7 @@ import {
   ChatIcon,
 } from '@/components/Icons'
 import { api, getUser, formatMoney, formatDate } from '@/lib/api'
+import { withPlural } from '@/lib/text'
 
 const STATUS_LABELS = {
   DRAFT: 'Черновик',
@@ -197,7 +198,8 @@ export default function ProjectPage() {
                   <span style={{ color: '#f5a623', display: 'inline-flex' }}>
                     <StarIcon size={12} />
                   </span>
-                  {project.client.rating.toFixed(1)} · {project.client.reviewsCount} оценок сделок
+                  {project.client.rating.toFixed(1)} ·{' '}
+                  {withPlural(project.client.reviewsCount, 'оценка', 'оценки', 'оценок')} за сделки
                 </>
               ) : (
                 'Без оценок за сделки'
@@ -327,7 +329,7 @@ export default function ProjectPage() {
                     {a.freelancer.name || 'Фрилансер'}
                   </span>
                   <div className="small muted">
-                    {a.freelancer.completedDeals} сделок
+                    {withPlural(a.freelancer.completedDeals, 'сделка', 'сделки', 'сделок')}
                     {a.freelancer.isVerified ? ' · Проверенный' : ' · Новичок'}
                   </div>
                 </div>

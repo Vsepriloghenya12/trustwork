@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Avatar from '@/components/Avatar'
 import { StarIcon, CheckIcon, VerifiedIcon, FileIcon, ChevronIcon, ChatIcon } from '@/components/Icons'
 import { api, getToken, clearSession, updateStoredUser } from '@/lib/api'
+import { plural, withPlural } from '@/lib/text'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -101,16 +102,20 @@ export default function ProfilePage() {
             <CheckIcon size={12} />
             Телефон подтвержден
           </span>
-          {user.isVerified ? (
-            <span className="badge-escrow">
-              <VerifiedIcon size={13} />
-              Проверенный фрилансер
-            </span>
-          ) : (
-            <span className="chip">
-              До статуса «Проверенный»: {Math.max(0, 3 - user.completedDeals)} сделки с эскроу
-            </span>
-          )}
+          {/* Статус «Проверенный» — про исполнителей, заказчику он не нужен */}
+          {user.role === 'FREELANCER' &&
+            (user.isVerified ? (
+              <span className="badge-escrow">
+                <VerifiedIcon size={13} />
+                Проверенный фрилансер
+              </span>
+            ) : (
+              <span className="chip">
+                До статуса «Проверенный»:{' '}
+                {withPlural(Math.max(0, 3 - user.completedDeals), 'сделка', 'сделки', 'сделок')} с
+                эскроу
+              </span>
+            ))}
           {user.telegram && <span className="chip">Telegram</span>}
           {user.github && <span className="chip">GitHub</span>}
         </div>
@@ -122,7 +127,9 @@ export default function ProfilePage() {
             {user.role === 'CLIENT' ? (user.postedProjects ?? 0) : user.completedDeals}
           </div>
           <div className="caption">
-            {user.role === 'CLIENT' ? 'проектов размещено' : 'сделок с эскроу'}
+            {user.role === 'CLIENT'
+              ? plural(user.postedProjects ?? 0, 'проект размещен', 'проекта размещено', 'проектов размещено')
+              : plural(user.completedDeals, 'сделка с эскроу', 'сделки с эскроу', 'сделок с эскроу')}
           </div>
         </div>
         <div className="stats-cell">
@@ -131,7 +138,7 @@ export default function ProfilePage() {
         </div>
         <div className="stats-cell">
           <div className="num">{user.reviewsCount}</div>
-          <div className="caption">отзывов</div>
+          <div className="caption">{plural(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов')}</div>
         </div>
       </div>
 
