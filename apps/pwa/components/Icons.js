@@ -55,8 +55,7 @@ export const SearchIcon = ({ size = 22 }) => (
 
 export const ChatIcon = ({ size = 22 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
-    <path d="M20.5 12a8.5 8.5 0 1 1-3.9-7.2A8.5 8.5 0 0 1 20.5 12z" />
-    <path d="M20.5 21l-2.8-2.8" />
+    <path d="M4.5 4h15A1.5 1.5 0 0 1 21 5.5v9a1.5 1.5 0 0 1-1.5 1.5H12l-4.6 3.4V16H4.5A1.5 1.5 0 0 1 3 14.5v-9A1.5 1.5 0 0 1 4.5 4z" />
   </svg>
 )
 

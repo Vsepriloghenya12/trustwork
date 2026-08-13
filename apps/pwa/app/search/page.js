@@ -61,9 +61,13 @@ export default function SearchPage() {
         </div>
       )}
 
-      {projects?.map((p) => (
-        <ProjectCard key={p.id} project={p} />
-      ))}
+      {projects?.length > 0 && (
+        <div className="list">
+          {projects.map((p) => (
+            <ProjectCard key={p.id} project={p} />
+          ))}
+        </div>
+      )}
     </main>
   )
 }

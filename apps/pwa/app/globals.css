@@ -2,7 +2,7 @@
   --c-indigo: #3b3486;
   --c-primary: #5b4fe9;
   --c-primary-soft: #efedfd;
-  --c-bg: #f7f7fb;
+  --c-bg: #ffffff;
   --c-surface: #ffffff;
   --c-ink: #191a2e;
   --c-muted: #63647f;
@@ -215,6 +215,22 @@ textarea {
 
 .thread + .thread {
   border-top: 1px solid var(--c-line);
+}
+
+/* ---------- Лента: плоский список с разделителями ---------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--c-line);
+}
+
+.project-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--c-line);
 }
 
 /* ---------- Карточка (только кликабельные сущности) ---------- */

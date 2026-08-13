@@ -66,9 +66,13 @@ export default function FeedPage() {
         </div>
       )}
 
-      {projects?.map((p) => (
-        <ProjectCard key={p.id} project={p} />
-      ))}
+      {projects?.length > 0 && (
+        <div className="list">
+          {projects.map((p) => (
+            <ProjectCard key={p.id} project={p} />
+          ))}
+        </div>
+      )}
 
       {!user && projects !== null && (
         <Link href="/login" className="btn btn--primary">
