@@ -113,8 +113,12 @@ export default function ProfilePage() {
 
       <div className="stats-row">
         <div className="stats-cell">
-          <div className="num">{user.completedDeals}</div>
-          <div className="caption">сделок с эскроу</div>
+          <div className="num">
+            {user.role === 'CLIENT' ? (user.postedProjects ?? 0) : user.completedDeals}
+          </div>
+          <div className="caption">
+            {user.role === 'CLIENT' ? 'проектов размещено' : 'сделок с эскроу'}
+          </div>
         </div>
         <div className="stats-cell">
           <div className="num">{user.rating > 0 ? user.rating.toFixed(1) : '—'}</div>

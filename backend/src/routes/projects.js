@@ -8,6 +8,7 @@ import { assertTransition } from '../services/projectStateMachine.js'
 import { resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
 import { FEED_SORTS, buildFeedOrder } from '../services/feedSort.js'
 import { filesRouter } from './files.js'
+import { buildSearchFilter } from '../services/search.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
 
@@ -71,14 +72,7 @@ projectsRouter.get('/', async (req, res) => {
   const where = {
     status: q.escrow === 'only' ? 'FUNDED' : { in: APPLIABLE_STATUSES },
     ...(q.tag ? { tags: { has: q.tag } } : {}),
-    ...(q.search
-      ? {
-          OR: [
-            { title: { contains: q.search, mode: 'insensitive' } },
-            { description: { contains: q.search, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
+    ...(q.search ? buildSearchFilter(q.search) ?? {} : {}),
   }
   const projects = await prisma.project.findMany({
     where,

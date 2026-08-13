@@ -7,8 +7,18 @@ import { publicUser, privateUser } from '../utils/serializers.js'
 
 export const usersRouter = Router()
 
-usersRouter.get('/me', requireAuth, (req, res) => {
-  res.json(privateUser(req.user))
+// У заказчика вместо «сделок с эскроу» показываем, сколько проектов он разместил
+async function withRoleStats(user, serialize) {
+  const base = serialize(user)
+  if (user.role !== 'CLIENT') return base
+  const postedProjects = await prisma.project.count({
+    where: { clientId: user.id, status: { not: 'DRAFT' } },
+  })
+  return { ...base, postedProjects }
+}
+
+usersRouter.get('/me', requireAuth, async (req, res) => {
+  res.json(await withRoleStats(req.user, privateUser))
 })
 
 usersRouter.patch('/me', requireAuth, async (req, res) => {
@@ -23,7 +33,7 @@ usersRouter.patch('/me', requireAuth, async (req, res) => {
     })
     .parse(req.body)
   const user = await prisma.user.update({ where: { id: req.user.id }, data })
-  res.json(privateUser(user))
+  res.json(await withRoleStats(user, privateUser))
 })
 
 // Непрочитанные сообщения: всего и по проектам (для бейджей в навигации и списке чатов)
@@ -42,7 +52,7 @@ usersRouter.get('/me/unread', requireAuth, async (req, res) => {
 usersRouter.get('/:id', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } })
   if (!user) throw new ApiError(404, 'Пользователь не найден')
-  res.json(publicUser(user))
+  res.json(await withRoleStats(user, publicUser))
 })
 
 // Отзывы о пользователе: сводка по видам + последние отзывы

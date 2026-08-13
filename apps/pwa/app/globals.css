@@ -219,6 +219,39 @@ textarea {
 
 /* ---------- Фильтры ленты ---------- */
 
+/* ---------- Поиск в ленте ---------- */
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1.5px solid var(--c-line);
+  border-radius: 14px;
+  padding: 0 14px;
+  color: var(--c-faint);
+}
+
+.search-field:focus-within {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(91, 79, 233, 0.14);
+  color: var(--c-primary);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 15px;
+  color: var(--c-ink);
+}
+
+.search-input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
 /* Текстовые табы: без плашек, все варианты в одну строку */
 .filters {
   display: flex;

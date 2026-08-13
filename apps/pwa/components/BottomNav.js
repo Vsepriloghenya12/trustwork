@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FeedIcon, SearchIcon, ChatIcon, UserIcon } from './Icons'
+import { FeedIcon, ChatIcon, UserIcon } from './Icons'
 import { api, getToken } from '@/lib/api'
 
+// Поиск живет прямо в ленте, отдельная вкладка не нужна
 const items = [
   { href: '/', label: 'Лента', icon: FeedIcon },
-  { href: '/search', label: 'Поиск', icon: SearchIcon },
   { href: '/chats', label: 'Чаты', icon: ChatIcon },
   { href: '/profile', label: 'Профиль', icon: UserIcon },
 ]

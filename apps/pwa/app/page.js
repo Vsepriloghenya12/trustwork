@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import ProjectCard from '@/components/ProjectCard'
-import { BellIcon, PlusIcon, FeedIcon } from '@/components/Icons'
+import { BellIcon, PlusIcon, FeedIcon, SearchIcon } from '@/components/Icons'
 import { api, getUser } from '@/lib/api'
 
-// Приоритет показа: с чего начинается лента
 // «Все» — весь список (проекты с эскроу выше), остальные — фильтр и приоритеты
 const SORTS = [
   { key: 'all', label: 'Все', query: 'sort=escrow' },
@@ -19,6 +18,7 @@ export default function FeedPage() {
   const [projects, setProjects] = useState(null)
   const [user, setUser] = useState(null)
   const [sort, setSort] = useState('all')
+  const [search, setSearch] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -27,11 +27,16 @@ export default function FeedPage() {
 
   useEffect(() => {
     setProjects(null)
-    const query = SORTS.find((s) => s.key === sort)?.query ?? ''
-    api(`/api/projects?${query}`)
-      .then(setProjects)
-      .catch((e) => setError(e.message))
-  }, [sort])
+    const params = new URLSearchParams(SORTS.find((s) => s.key === sort)?.query ?? '')
+    if (search.trim()) params.set('search', search.trim())
+    // Ждем паузу в наборе, чтобы не дергать сервер на каждую букву
+    const timer = setTimeout(() => {
+      api(`/api/projects?${params}`)
+        .then(setProjects)
+        .catch((e) => setError(e.message))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [sort, search])
 
   return (
     <main className="shell stack">
@@ -57,6 +62,18 @@ export default function FeedPage() {
         </h1>
       </header>
 
+      <div className="search-field">
+        <SearchIcon size={18} />
+        <input
+          className="search-input"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Найти проект: логотип, лендинг, тексты…"
+          aria-label="Поиск проектов"
+        />
+      </div>
+
       <div className="filters" role="group" aria-label="Порядок показа проектов">
         {SORTS.map((s) => (
           <button
@@ -74,12 +91,14 @@ export default function FeedPage() {
 
       {projects?.length === 0 && (
         <div className="empty">
-          <span className="empty__icon">
-            <FeedIcon />
-          </span>
-          <h3>Пока пусто</h3>
-          <p className="small">Здесь появятся проекты заказчиков.</p>
-          {user?.role === 'CLIENT' && (
+          <span className="empty__icon">{search.trim() ? <SearchIcon /> : <FeedIcon />}</span>
+          <h3>{search.trim() ? 'Ничего не нашлось' : 'Пока пусто'}</h3>
+          <p className="small">
+            {search.trim()
+              ? 'Попробуйте другое слово или снимите фильтр.'
+              : 'Здесь появятся проекты заказчиков.'}
+          </p>
+          {!search.trim() && user?.role === 'CLIENT' && (
             <Link href="/projects/new" className="btn btn--primary" style={{ marginTop: 16 }}>
               Создать первый проект
             </Link>
