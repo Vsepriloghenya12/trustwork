@@ -72,6 +72,10 @@ model User {
   isVerified     Boolean  @default(false)
   // Доступ к странице владельца: поддержка и арбитраж
   isAdmin        Boolean  @default(false)
+  // Фото профиля: хранится в БД, отдается через /api/users/:id/avatar
+  avatarData     Bytes?
+  avatarMime     String?
+  avatarAt       DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

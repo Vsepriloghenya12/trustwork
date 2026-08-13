@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import multer from 'multer'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
@@ -65,6 +66,46 @@ usersRouter.get('/me/unread', requireAuth, async (req, res) => {
     total: grouped.reduce((sum, g) => sum + g._count, 0),
     byProject: Object.fromEntries(grouped.map((g) => [g.projectId, g._count])),
   })
+})
+
+// Фото профиля: до 2 МБ, только картинки. Клиент присылает уже уменьшенное.
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+})
+
+const AVATAR_MIME = ['image/jpeg', 'image/png', 'image/webp']
+
+usersRouter.put('/me/avatar', requireAuth, avatarUpload.single('file'), async (req, res) => {
+  if (!req.file) throw new ApiError(400, 'Файл не получен')
+  if (!AVATAR_MIME.includes(req.file.mimetype)) {
+    throw new ApiError(400, 'Подойдет JPG, PNG или WebP')
+  }
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { avatarData: req.file.buffer, avatarMime: req.file.mimetype, avatarAt: new Date() },
+  })
+  res.json(await withRoleStats(user, privateUser))
+})
+
+usersRouter.delete('/me/avatar', requireAuth, async (req, res) => {
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { avatarData: null, avatarMime: null, avatarAt: null },
+  })
+  res.json(await withRoleStats(user, privateUser))
+})
+
+usersRouter.get('/:id/avatar', async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    select: { avatarData: true, avatarMime: true, avatarAt: true },
+  })
+  if (!user?.avatarData) throw new ApiError(404, 'Фото не загружено')
+  res.setHeader('Content-Type', user.avatarMime || 'image/jpeg')
+  // Ссылка содержит метку времени, поэтому кэшировать можно надолго
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  res.send(Buffer.from(user.avatarData))
 })
 
 usersRouter.get('/:id', async (req, res) => {
