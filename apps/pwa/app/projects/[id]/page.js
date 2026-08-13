@@ -58,6 +58,11 @@ export default function ProjectPage() {
 
   const isOwner = user && project && user.id === project.client.id
   const isAssignee = user && project && project.freelancer?.id === user.id
+  // Шкала сделки нужна тем, кто в ней участвует, и только с момента начала работы
+  const showEscrowTimeline =
+    (isAssignee || isOwner) &&
+    ['IN_PROGRESS', 'COMPLETED'].includes(project?.status) &&
+    (project?.escrowActive || project?.escrowReleased)
 
   useEffect(() => {
     if (isOwner && ['OPEN', 'FUNDED', 'IN_PROGRESS'].includes(project?.status)) {
@@ -208,26 +213,27 @@ export default function ProjectPage() {
         </div>
       </div>
 
-      {project.escrowActive || project.escrowReleased ? (
+      {/* Шкала сделки — участникам, когда работа началась. Остальным хватает бейджа в чипах */}
+      {showEscrowTimeline && (
         <div className="escrow-panel">
           <div className="escrow-panel__title">
             <LockIcon size={16} />
             Безопасная сделка: {formatMoney(project.budget, project.currency)}{' '}
             {project.escrowReleased ? 'выплачено исполнителю' : 'заморожено в эскроу'}
           </div>
-          <EscrowTimeline status={project.status === 'OPEN' ? 'FUNDED' : project.status} />
+          <EscrowTimeline status={project.status} />
         </div>
-      ) : (
-        project.status !== 'DRAFT' && (
-          <div className="notice">
-            {project.status === 'COMPLETED'
-              ? 'Сделка завершена. Оплата проходила напрямую, без эскроу.'
-              : 'Бюджет не заморожен — оплата напрямую по договоренности. Эскроу подключает заказчик: тогда платформа гарантирует оплату.'}
-          </div>
-        )
       )}
 
       <div className="chips">
+        {project.escrowActive || project.escrowReleased ? (
+          <span className="badge-escrow">
+            <LockIcon />
+            {project.escrowReleased ? 'Оплачено через эскроу' : 'Оплата в эскроу'}
+          </span>
+        ) : (
+          project.status !== 'DRAFT' && <span className="chip">Эскроу не подключен</span>
+        )}
         <span className="chip">
           Бюджет: <b>{formatMoney(project.budget, project.currency)}</b>
         </span>
