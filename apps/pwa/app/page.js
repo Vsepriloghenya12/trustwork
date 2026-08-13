@@ -8,9 +8,9 @@ import { api, getUser } from '@/lib/api'
 
 // Приоритет показа: с чего начинается лента
 const SORTS = [
-  { key: 'escrow', label: 'Сначала с эскроу' },
-  { key: 'rating', label: 'Высокий рейтинг' },
-  { key: 'budget', label: 'Сначала дорогие' },
+  { key: 'escrow', label: 'С эскроу' },
+  { key: 'rating', label: 'Рейтинг' },
+  { key: 'budget', label: 'Дороже' },
   { key: 'new', label: 'Новые' },
 ]
 
@@ -59,7 +59,7 @@ export default function FeedPage() {
         {SORTS.map((s) => (
           <button
             key={s.key}
-            className={`chip${sort === s.key ? ' chip--active' : ''}`}
+            className={`filter${sort === s.key ? ' filter--active' : ''}`}
             onClick={() => setSort(s.key)}
             aria-pressed={sort === s.key}
           >

@@ -219,25 +219,36 @@ textarea {
 
 /* ---------- Фильтры ленты ---------- */
 
+/* Текстовые табы: без плашек, все варианты в одну строку */
 .filters {
   display: flex;
+  justify-content: space-between;
   gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  /* край-в-край: чипы прокручиваются от границы экрана */
-  margin: 0 -20px;
-  padding: 2px 20px 4px;
+  border-bottom: 1px solid var(--c-line);
 }
 
-.filters::-webkit-scrollbar {
-  display: none;
-}
-
-.filters .chip {
+.filter {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-faint);
   white-space: nowrap;
-  flex-shrink: 0;
-  min-height: 34px;
-  padding: 0 14px;
+  padding: 10px 2px 11px;
+  position: relative;
+}
+
+.filter--active {
+  color: var(--c-primary);
+}
+
+.filter--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--c-primary);
 }
 
 /* ---------- Лента: плоский список с разделителями ---------- */
@@ -245,7 +256,6 @@ textarea {
 .list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--c-line);
 }
 
 .project-row {
