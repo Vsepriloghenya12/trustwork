@@ -17,5 +17,5 @@ export function publicUser(u) {
 }
 
 export function privateUser(u) {
-  return { ...publicUser(u), phone: u.phone }
+  return { ...publicUser(u), phone: u.phone, isAdmin: u.isAdmin }
 }

@@ -18,6 +18,12 @@ export async function requireAuth(req, res, next) {
   next()
 }
 
+// Страница владельца: поддержка и арбитраж
+export function requireAdmin(req, res, next) {
+  if (!req.user?.isAdmin) throw new ApiError(403, 'Доступно только владельцу платформы')
+  next()
+}
+
 export async function optionalAuth(req, res, next) {
   const header = req.headers.authorization || ''
   if (!header.startsWith('Bearer ')) return next()

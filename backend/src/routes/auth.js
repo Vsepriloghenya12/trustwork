@@ -5,6 +5,7 @@ import { config } from '../config.js'
 import { prisma } from '../lib/prisma.js'
 import { sendSms } from '../services/sms.js'
 import { createVerificationCode, consumeVerificationCode } from '../services/verification.js'
+import { isAdminPhone } from '../services/admins.js'
 import { privateUser } from '../utils/serializers.js'
 
 const phoneSchema = z
@@ -38,8 +39,13 @@ authRouter.post('/verify', async (req, res) => {
   const phone = normalizePhone(body.phone)
   await consumeVerificationCode(phone, body.code)
   const existing = await prisma.user.findUnique({ where: { phone } })
-  const user =
+  let user =
     existing ?? (await prisma.user.create({ data: { phone, role: body.role ?? 'FREELANCER' } }))
+  // Доступ владельца выдается по номеру из ADMIN_PHONES
+  const shouldBeAdmin = isAdminPhone(phone)
+  if (user.isAdmin !== shouldBeAdmin) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { isAdmin: shouldBeAdmin } })
+  }
   const token = jwt.sign({ sub: user.id }, config.jwtSecret, { expiresIn: '30d' })
   res.json({ token, user: privateUser(user), isNew: !existing })
 })

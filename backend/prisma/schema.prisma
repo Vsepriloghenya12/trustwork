@@ -64,6 +64,8 @@ model User {
   telegram       String?
   github         String?
   isVerified     Boolean  @default(false)
+  // Доступ к странице владельца: поддержка и арбитраж
+  isAdmin        Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -74,6 +76,7 @@ model User {
   receivedMessages   Message[]     @relation("ReceivedMessages")
   reviewsReceived    Review[]      @relation("SubjectReviews")
   reviewsAuthored    Review[]      @relation("AuthoredReviews")
+  supportMessages    SupportMessage[]
 }
 
 model Project {
@@ -181,6 +184,21 @@ model Message {
 
   @@index([projectId, createdAt])
   @@index([recipientId, readAt])
+}
+
+// Диалог пользователя с поддержкой: у каждого пользователя одна ветка.
+// fromSupport — сообщение написано владельцем со страницы поддержки.
+model SupportMessage {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  fromSupport Boolean   @default(false)
+  text        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([fromSupport, readAt])
 }
 
 model VerificationCode {

@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Avatar from '@/components/Avatar'
-import { StarIcon, CheckIcon, VerifiedIcon, FileIcon, ChevronIcon } from '@/components/Icons'
+import {
+  StarIcon,
+  CheckIcon,
+  VerifiedIcon,
+  FileIcon,
+  ChevronIcon,
+  ChatIcon,
+  ShieldIcon,
+} from '@/components/Icons'
 import { api, getToken, clearSession, updateStoredUser } from '@/lib/api'
 
 export default function ProfilePage() {
@@ -13,6 +21,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [supportUnread, setSupportUnread] = useState(0)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -26,6 +35,9 @@ export default function ProfilePage() {
         updateStoredUser(u)
       })
       .catch((e) => setError(e.message))
+    api('/api/support/unread')
+      .then((r) => setSupportUnread(r.count))
+      .catch(() => {})
   }, [router])
 
   function startEdit() {
@@ -156,6 +168,22 @@ export default function ProfilePage() {
       {!editing && (
         <section className="stack" style={{ gap: 0 }}>
           <div className="h-sec">Прочее</div>
+          <Link href="/support" className="list-row">
+            <span className="file-icon">
+              <ChatIcon size={18} />
+            </span>
+            <span style={{ flex: 1 }}>
+              <span className="file-name" style={{ display: 'block' }}>
+                Поддержка
+              </span>
+              <span className="caption">Задать вопрос или сообщить о проблеме</span>
+            </span>
+            {supportUnread > 0 && <span className="unread-pill">{supportUnread}</span>}
+            <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
+              <ChevronIcon />
+            </span>
+          </Link>
+
           <Link href="/legal" className="list-row">
             <span className="file-icon">
               <FileIcon />
@@ -170,6 +198,23 @@ export default function ProfilePage() {
               <ChevronIcon />
             </span>
           </Link>
+
+          {user.isAdmin && (
+            <Link href="/owner" className="list-row">
+              <span className="file-icon">
+                <ShieldIcon size={18} />
+              </span>
+              <span style={{ flex: 1 }}>
+                <span className="file-name" style={{ display: 'block' }}>
+                  Страница владельца
+                </span>
+                <span className="caption">Обращения в поддержку и арбитраж</span>
+              </span>
+              <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
+                <ChevronIcon />
+              </span>
+            </Link>
+          )}
         </section>
       )}
 
