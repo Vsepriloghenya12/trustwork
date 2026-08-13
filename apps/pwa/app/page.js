@@ -40,26 +40,22 @@ export default function FeedPage() {
 
   return (
     <main className="shell stack">
-      <header>
-        <div className="topbar" style={{ marginBottom: 12 }}>
-          <span className="logo">
-            TrustWork
-            <span className="logo__dot" />
-          </span>
-          <div className="row">
-            {user?.role === 'CLIENT' && (
-              <Link href="/projects/new" className="iconbtn" aria-label="Создать проект">
-                <PlusIcon />
-              </Link>
-            )}
-            <Link href="/chats" className="iconbtn" aria-label="Уведомления">
-              <BellIcon />
+      <header className="topbar" style={{ marginBottom: 2 }}>
+        <span className="logo" style={{ fontSize: 19 }}>
+          TrustWork
+          <span className="logo__dot" />
+        </span>
+        <h1 className="sr-only">Лента проектов</h1>
+        <div className="row">
+          {user?.role === 'CLIENT' && (
+            <Link href="/projects/new" className="iconbtn" aria-label="Создать проект">
+              <PlusIcon />
             </Link>
-          </div>
+          )}
+          <Link href="/chats" className="iconbtn" aria-label="Уведомления">
+            <BellIcon />
+          </Link>
         </div>
-        <h1 className="title-xl">
-          {user?.name ? `Здравствуйте, ${user.name.split(' ')[0]}!` : 'Лента проектов'}
-        </h1>
       </header>
 
       <div className="search-field">
