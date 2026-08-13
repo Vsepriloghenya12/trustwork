@@ -1,12 +1,12 @@
 {
   "name": "trustwork",
   "private": true,
-  "description": "Деплой-переходник: сборка из корня репозитория собирает PWA (apps/pwa). Сервис backend использует Root Directory=backend и этот файл не видит.",
+  "description": "Деплой-переходник: собирает приложение из apps/$APP_DIR (по умолчанию pwa, для панели владельца APP_DIR=admin). Сервис backend использует Root Directory=backend и этот файл не видит.",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm install --prefix apps/pwa && npm run build --prefix apps/pwa",
-    "start": "npm run start --prefix apps/pwa"
+    "build": "npm install --prefix apps/${APP_DIR:-pwa} && npm run build --prefix apps/${APP_DIR:-pwa}",
+    "start": "npm run start --prefix apps/${APP_DIR:-pwa}"
   }
 }
