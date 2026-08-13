@@ -7,14 +7,32 @@ import { publicUser, privateUser } from '../utils/serializers.js'
 
 export const usersRouter = Router()
 
-// У заказчика вместо «сделок с эскроу» показываем, сколько проектов он разместил
+// У заказчика вместо «сделок с эскроу» показываем работу с проектами:
+// сколько размещено, сколько открыто, сколько в работе и сколько денег в эскроу
 async function withRoleStats(user, serialize) {
   const base = serialize(user)
   if (user.role !== 'CLIENT') return base
-  const postedProjects = await prisma.project.count({
-    where: { clientId: user.id, status: { not: 'DRAFT' } },
-  })
-  return { ...base, postedProjects }
+  const [grouped, escrow] = await Promise.all([
+    prisma.project.groupBy({
+      by: ['status'],
+      where: { clientId: user.id, status: { not: 'DRAFT' } },
+      _count: true,
+    }),
+    prisma.transaction.aggregate({
+      where: { status: 'HOLDED', project: { clientId: user.id } },
+      _sum: { amount: true },
+    }),
+  ])
+  const countOf = (...statuses) =>
+    grouped.filter((g) => statuses.includes(g.status)).reduce((sum, g) => sum + g._count, 0)
+  return {
+    ...base,
+    postedProjects: grouped.reduce((sum, g) => sum + g._count, 0),
+    openProjects: countOf('OPEN', 'FUNDED', 'PENDING_PAYMENT'),
+    inProgressProjects: countOf('IN_PROGRESS'),
+    completedProjects: countOf('COMPLETED'),
+    escrowHeld: escrow._sum.amount ?? 0,
+  }
 }
 
 usersRouter.get('/me', requireAuth, async (req, res) => {
@@ -58,11 +76,11 @@ usersRouter.get('/:id', async (req, res) => {
 // Отзывы о пользователе: сводка по видам + последние отзывы
 usersRouter.get('/:id/reviews', async (req, res) => {
   const all = await prisma.review.findMany({
-    where: { subjectId: req.params.id },
+    where: { subjectId: req.params.id, hiddenAt: null },
     select: { kind: true },
   })
   const recent = await prisma.review.findMany({
-    where: { subjectId: req.params.id },
+    where: { subjectId: req.params.id, hiddenAt: null },
     orderBy: { createdAt: 'desc' },
     take: 20,
     include: { author: true },

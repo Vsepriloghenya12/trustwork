@@ -22,10 +22,11 @@ export function resolveReviewTarget(project, authorId) {
   }
 }
 
-// Рейтинг пользователя считается только по DEAL-отзывам
+// Рейтинг пользователя считается только по DEAL-отзывам; скрытые по итогам
+// обжалования в расчет не идут
 export async function recalcUserRating(subjectId) {
   const agg = await prisma.review.aggregate({
-    where: { subjectId, kind: 'DEAL' },
+    where: { subjectId, kind: 'DEAL', hiddenAt: null },
     _avg: { rating: true },
     _count: true,
   })

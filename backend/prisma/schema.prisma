@@ -30,6 +30,12 @@ enum ReviewKind {
   DEAL
 }
 
+enum AppealStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 // Кто может открыть вложение проекта. Список файлов виден всем в любом случае —
 // закрытые помечены замком и открываются только откликнувшимся.
 enum FileVisibility {
@@ -77,6 +83,7 @@ model User {
   reviewsReceived    Review[]      @relation("SubjectReviews")
   reviewsAuthored    Review[]      @relation("AuthoredReviews")
   supportMessages    SupportMessage[]
+  appeals            ReviewAppeal[]   @relation("AuthoredAppeals")
 }
 
 model Project {
@@ -129,6 +136,8 @@ model Review {
   rating    Int?
   tags      String[]   @default([])
   comment   String?
+  // Отзыв скрыт по итогам обжалования: в рейтинг и в списки не попадает
+  hiddenAt  DateTime?
   projectId String
   project   Project    @relation(fields: [projectId], references: [id])
   subjectId String
@@ -137,8 +146,27 @@ model Review {
   author    User       @relation("AuthoredReviews", fields: [authorId], references: [id])
   createdAt DateTime   @default(now())
 
+  appeals ReviewAppeal[]
+
   @@unique([projectId, authorId])
   @@index([subjectId, kind])
+}
+
+// Обжалование отзыва тем, о ком он написан. Решение принимает владелец платформы.
+model ReviewAppeal {
+  id         String       @id @default(cuid())
+  reviewId   String
+  review     Review       @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User         @relation("AuthoredAppeals", fields: [authorId], references: [id])
+  reason     String
+  status     AppealStatus @default(PENDING)
+  resolution String?
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([reviewId])
 }
 
 model Application {

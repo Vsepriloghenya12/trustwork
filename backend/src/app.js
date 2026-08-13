@@ -6,6 +6,7 @@ import { projectsRouter } from './routes/projects.js'
 import { applicationsRouter } from './routes/applications.js'
 import { paymentsRouter } from './routes/payments.js'
 import { supportRouter } from './routes/support.js'
+import { reviewsRouter } from './routes/reviews.js'
 import { errorHandler } from './utils/errors.js'
 
 export function createApp() {
@@ -20,6 +21,7 @@ export function createApp() {
   app.use('/api/applications', applicationsRouter)
   app.use('/api/payments', paymentsRouter)
   app.use('/api/support', supportRouter)
+  app.use('/api/reviews', reviewsRouter)
 
   app.use(errorHandler)
   return app
