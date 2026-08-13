@@ -861,6 +861,51 @@ textarea.input {
   margin-top: 1px;
 }
 
+/* ---------- Сворачиваемый блок ---------- */
+
+.accordion {
+  border-bottom: 1px solid var(--c-line);
+}
+
+/* Блок идет сразу за статистикой — ее нижняя граница служит разделителем */
+.stats-row + .accordion {
+  margin-top: -14px;
+}
+
+.accordion__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 0;
+}
+
+.accordion__title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.accordion__chevron {
+  color: var(--c-faint);
+  display: inline-flex;
+  transform: rotate(90deg);
+  transition: transform 0.18s ease;
+}
+
+.accordion__chevron--open {
+  transform: rotate(-90deg);
+}
+
+.accordion__body {
+  padding-bottom: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accordion__chevron {
+    transition: none;
+  }
+}
+
 /* ---------- Файлы задачи ---------- */
 
 .file-row {

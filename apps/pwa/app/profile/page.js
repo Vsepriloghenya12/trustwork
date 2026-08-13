@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Avatar from '@/components/Avatar'
 import {
-  StarIcon,
-  CheckIcon,
   VerifiedIcon,
   FileIcon,
   ChevronIcon,
@@ -21,6 +19,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [editing, setEditing] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
   const [supportUnread, setSupportUnread] = useState(0)
@@ -50,6 +49,7 @@ export default function ProfilePage() {
       telegram: user.telegram || '',
       github: user.github || '',
     })
+    setAboutOpen(true)
     setEditing(true)
   }
 
@@ -96,204 +96,202 @@ export default function ProfilePage() {
     )
   }
 
-  return (
-    <main className="shell stack" style={{ gap: 16 }}>
-      <div className="stack" style={{ alignItems: 'center', textAlign: 'center', gap: 10, paddingTop: 8 }}>
-        <Avatar name={user.name} size={72} />
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 19 }}>{user.name || 'Без имени'}</div>
-          <div className="sub">
-            {user.role === 'CLIENT' ? 'Заказчик' : 'Фрилансер'} · {user.phone}
-          </div>
-        </div>
-        <div className="chips" style={{ justifyContent: 'center' }}>
-          <span className="badge-escrow">
-            <CheckIcon size={12} />
-            Телефон подтвержден
-          </span>
-          {/* Статус «Проверенный» — про исполнителей, заказчику он не нужен */}
-          {user.role === 'FREELANCER' &&
-            (user.isVerified ? (
-              <span className="badge-escrow">
-                <VerifiedIcon size={13} />
-                Проверенный фрилансер
-              </span>
-            ) : (
-              <span className="chip">
-                До статуса «Проверенный»:{' '}
-                {withPlural(Math.max(0, 3 - user.completedDeals), 'сделка', 'сделки', 'сделок')} с
-                эскроу
-              </span>
-            ))}
-          {user.telegram && <span className="chip">Telegram</span>}
-          {user.github && <span className="chip">GitHub</span>}
-        </div>
-      </div>
+  const isClient = user.role === 'CLIENT'
+  const aboutTitle = isClient ? 'О компании' : 'О себе'
+  const aboutFilled = Boolean(user.bio || user.skills?.length || user.telegram || user.github)
 
-      <Link href="/reviews" className="stats-row" style={{ textDecoration: 'none' }}>
-        <div className="stats-cell">
-          <div className="num">
-            {user.role === 'CLIENT' ? (user.postedProjects ?? 0) : user.completedDeals}
+  return (
+    <main className="shell stack" style={{ gap: 14 }}>
+      {/* Шапка: аватар слева, рядом имя и телефон */}
+      <header className="row" style={{ gap: 14, paddingTop: 4 }}>
+        <Avatar name={user.name} size={62} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="row" style={{ gap: 6 }}>
+            <span style={{ fontWeight: 800, fontSize: 18 }}>{user.name || 'Без имени'}</span>
+            {user.isVerified && (
+              <span style={{ color: 'var(--c-primary)', display: 'inline-flex' }} title="Проверенный">
+                <VerifiedIcon size={15} />
+              </span>
+            )}
           </div>
-          <div className="caption">
-            {user.role === 'CLIENT'
-              ? plural(user.postedProjects ?? 0, 'проект размещен', 'проекта размещено', 'проектов размещено')
-              : plural(user.completedDeals, 'сделка с эскроу', 'сделки с эскроу', 'сделок с эскроу')}
-          </div>
+          <div className="sub">{user.phone}</div>
+          <div className="caption">{isClient ? 'Заказчик' : 'Фрилансер'}</div>
         </div>
-        <div className="stats-cell">
+      </header>
+
+      {/* Три показателя, каждый ведет в свой раздел */}
+      <div className="stats-row">
+        <Link href="/my-projects" className="stats-cell">
+          <div className="num">{isClient ? (user.postedProjects ?? 0) : user.completedDeals}</div>
+          <div className="caption">
+            {isClient
+              ? plural(user.postedProjects ?? 0, 'проект', 'проекта', 'проектов')
+              : plural(user.completedDeals, 'сделка', 'сделки', 'сделок')}
+          </div>
+        </Link>
+        <Link href="/reviews" className="stats-cell">
           <div className="num">{user.rating > 0 ? user.rating.toFixed(1) : '—'}</div>
           <div className="caption">рейтинг</div>
-        </div>
-        <div className="stats-cell">
+        </Link>
+        <Link href="/reviews" className="stats-cell">
           <div className="num">{user.reviewsCount}</div>
           <div className="caption">{plural(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов')}</div>
-        </div>
-      </Link>
-      <p className="caption" style={{ marginTop: -8 }}>
-        {user.role === 'CLIENT'
-          ? 'Оценку ставят фрилансеры после завершенных сделок.'
-          : 'Оценку ставят заказчики после завершенных сделок.'}{' '}
-        <Link href="/reviews" style={{ color: 'var(--c-primary)', fontWeight: 700 }}>
-          Смотреть отзывы
         </Link>
-      </p>
+      </div>
 
-      {user.role === 'CLIENT' && (
-        <section className="section" style={{ gap: 12 }}>
-          <div className="row row--between">
-            <span className="h-sec">Мои проекты</span>
-            <Link href="/my-projects" className="caption" style={{ color: 'var(--c-primary)', fontWeight: 700 }}>
-              Все проекты
-            </Link>
-          </div>
-          <div className="stats-row" style={{ border: 'none', padding: 0 }}>
-            <Link href="/my-projects?tab=open" className="stats-cell">
-              <div className="num">{user.openProjects ?? 0}</div>
-              <div className="caption">открыто</div>
-            </Link>
-            <Link href="/my-projects?tab=work" className="stats-cell">
-              <div className="num">{user.inProgressProjects ?? 0}</div>
-              <div className="caption">в работе</div>
-            </Link>
-            <Link href="/my-projects?tab=done" className="stats-cell">
-              <div className="num">{user.completedProjects ?? 0}</div>
-              <div className="caption">завершено</div>
-            </Link>
-          </div>
-          {user.escrowHeld > 0 && (
-            <div className="escrow-panel" style={{ padding: '12px 14px' }}>
-              <div className="escrow-panel__title" style={{ fontSize: 13 }}>
-                <LockIcon size={14} />
-                В эскроу заморожено: {formatMoney(user.escrowHeld)}
+      {/* Свернутый блок с информацией: разворачивается и редактируется */}
+      <section className="accordion">
+        <button
+          className="accordion__head"
+          onClick={() => setAboutOpen((v) => !v)}
+          aria-expanded={aboutOpen}
+        >
+          <span style={{ flex: 1, textAlign: 'left' }}>
+            <span className="accordion__title">{aboutTitle}</span>
+            <span className="caption" style={{ display: 'block' }}>
+              {aboutFilled ? 'Видно фрилансерам в ваших проектах' : 'Не заполнено'}
+            </span>
+          </span>
+          <span className={`accordion__chevron${aboutOpen ? ' accordion__chevron--open' : ''}`}>
+            <ChevronIcon />
+          </span>
+        </button>
+
+        {aboutOpen && !editing && (
+          <div className="accordion__body stack" style={{ gap: 10 }}>
+            {user.bio ? (
+              <p className="small">{user.bio}</p>
+            ) : (
+              <p className="caption">
+                {isClient
+                  ? 'Расскажите о компании: чем занимаетесь, какие задачи отдаете фрилансерам.'
+                  : 'Расскажите о себе: чем занимаетесь и какие задачи беретесь решать.'}
+              </p>
+            )}
+            {user.skills?.length > 0 && (
+              <div className="chips">
+                {user.skills.map((s) => (
+                  <span key={s} className="chip">
+                    {s}
+                  </span>
+                ))}
               </div>
+            )}
+            {(user.telegram || user.github) && (
+              <div className="chips">
+                {user.telegram && <span className="chip">Telegram: {user.telegram}</span>}
+                {user.github && <span className="chip">GitHub: {user.github}</span>}
+              </div>
+            )}
+            <button className="btn btn--ghost btn--compact" onClick={startEdit}>
+              Редактировать
+            </button>
+          </div>
+        )}
+
+        {aboutOpen && editing && (
+          <form className="accordion__body stack" onSubmit={save}>
+            <div className="field">
+              <label>Имя</label>
+              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
-          )}
-          <Link href="/projects/new" className="btn btn--primary">
-            <PlusIcon size={18} />
-            Разместить проект
-          </Link>
-        </section>
+            <div className="field">
+              <label>{isClient ? 'О компании' : 'О себе'}</label>
+              <textarea
+                className="input"
+                rows={4}
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                placeholder={
+                  isClient
+                    ? 'Чем занимается компания, какие задачи отдаете на фриланс'
+                    : 'Чем занимаетесь, какой опыт'
+                }
+              />
+            </div>
+            <div className="field">
+              <label>{isClient ? 'Сферы работы (через запятую)' : 'Навыки (через запятую)'}</label>
+              <input
+                className="input"
+                value={form.skills}
+                onChange={(e) => setForm({ ...form, skills: e.target.value })}
+                placeholder={isClient ? 'маркетинг, интернет-магазин' : 'дизайн, логотипы'}
+              />
+            </div>
+            <div className="field">
+              <label>Telegram</label>
+              <input className="input" value={form.telegram} onChange={(e) => setForm({ ...form, telegram: e.target.value })} placeholder="username" />
+            </div>
+            <div className="field">
+              <label>GitHub</label>
+              <input className="input" value={form.github} onChange={(e) => setForm({ ...form, github: e.target.value })} placeholder="username" />
+            </div>
+            {error && <div className="form-error">{error}</div>}
+            <button className="btn btn--primary" disabled={busy}>
+              Сохранить
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setEditing(false)}>
+              Отмена
+            </button>
+          </form>
+        )}
+      </section>
+
+      {isClient && user.escrowHeld > 0 && (
+        <div className="escrow-panel" style={{ padding: '12px 14px' }}>
+          <div className="escrow-panel__title" style={{ fontSize: 13 }}>
+            <LockIcon size={14} />
+            В эскроу заморожено: {formatMoney(user.escrowHeld)}
+          </div>
+        </div>
       )}
 
-      {user.skills?.length > 0 && !editing && (
-        <section className="stack" style={{ gap: 8 }}>
-          <div className="h-sec">Навыки</div>
-          <div className="chips">
-            {user.skills.map((s) => (
-              <span key={s} className="chip">
-                {s}
-              </span>
-            ))}
-          </div>
-        </section>
+      {isClient && (
+        <Link href="/projects/new" className="btn btn--primary">
+          <PlusIcon size={18} />
+          Разместить проект
+        </Link>
       )}
 
-      {user.bio && !editing && (
-        <section className="stack" style={{ gap: 6 }}>
-          <div className="h-sec">О себе</div>
-          <p className="small">{user.bio}</p>
-        </section>
-      )}
+      {error && !editing && <div className="form-error">{error}</div>}
 
-      {error && <div className="form-error">{error}</div>}
+      <section className="stack" style={{ gap: 0 }}>
+        <div className="h-sec">Прочее</div>
+        <Link href="/support" className="list-row">
+          <span className="file-icon">
+            <ChatIcon size={18} />
+          </span>
+          <span style={{ flex: 1 }}>
+            <span className="file-name" style={{ display: 'block' }}>
+              Поддержка
+            </span>
+            <span className="caption">Задать вопрос или сообщить о проблеме</span>
+          </span>
+          {supportUnread > 0 && <span className="unread-pill">{supportUnread}</span>}
+          <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
+            <ChevronIcon />
+          </span>
+        </Link>
 
-      {!editing && (
-        <section className="stack" style={{ gap: 0 }}>
-          <div className="h-sec">Прочее</div>
-          <Link href="/support" className="list-row">
-            <span className="file-icon">
-              <ChatIcon size={18} />
+        <Link href="/legal" className="list-row">
+          <span className="file-icon">
+            <FileIcon />
+          </span>
+          <span style={{ flex: 1 }}>
+            <span className="file-name" style={{ display: 'block' }}>
+              Документы и оферта
             </span>
-            <span style={{ flex: 1 }}>
-              <span className="file-name" style={{ display: 'block' }}>
-                Поддержка
-              </span>
-              <span className="caption">Задать вопрос или сообщить о проблеме</span>
-            </span>
-            {supportUnread > 0 && <span className="unread-pill">{supportUnread}</span>}
-            <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
-              <ChevronIcon />
-            </span>
-          </Link>
+            <span className="caption">Правила расчетов, эскроу и обработки данных</span>
+          </span>
+          <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
+            <ChevronIcon />
+          </span>
+        </Link>
+      </section>
 
-          <Link href="/legal" className="list-row">
-            <span className="file-icon">
-              <FileIcon />
-            </span>
-            <span style={{ flex: 1 }}>
-              <span className="file-name" style={{ display: 'block' }}>
-                Документы и оферта
-              </span>
-              <span className="caption">Правила расчетов, эскроу и обработки данных</span>
-            </span>
-            <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
-              <ChevronIcon />
-            </span>
-          </Link>
-
-        </section>
-      )}
-
-      {!editing ? (
-        <>
-          <button className="btn btn--ghost" onClick={startEdit}>
-            Редактировать профиль
-          </button>
-          <button className="btn btn--outline-danger" onClick={logout}>
-            Выйти
-          </button>
-        </>
-      ) : (
-        <form className="stack section" onSubmit={save}>
-          <div className="field">
-            <label>Имя</label>
-            <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div className="field">
-            <label>О себе</label>
-            <textarea className="input" rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Чем занимаетесь, какой опыт" />
-          </div>
-          <div className="field">
-            <label>Навыки (через запятую)</label>
-            <input className="input" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} placeholder="дизайн, логотипы, айдентика" />
-          </div>
-          <div className="field">
-            <label>Telegram (никнейм — виден как бейдж)</label>
-            <input className="input" value={form.telegram} onChange={(e) => setForm({ ...form, telegram: e.target.value })} placeholder="username" />
-          </div>
-          <div className="field">
-            <label>GitHub</label>
-            <input className="input" value={form.github} onChange={(e) => setForm({ ...form, github: e.target.value })} placeholder="username" />
-          </div>
-          <button className="btn btn--primary" disabled={busy}>
-            Сохранить изменения
-          </button>
-          <button type="button" className="btn btn--ghost" onClick={() => setEditing(false)}>
-            Отмена
-          </button>
-        </form>
-      )}
+      <button className="btn btn--outline-danger" onClick={logout}>
+        Выйти
+      </button>
     </main>
   )
 }
