@@ -20,7 +20,7 @@ export const metadata = {
   description:
     'Проекты с замороженным бюджетом: отклики бесплатны, оплата гарантирована эскроу.',
   appleWebApp: { capable: true, title: 'TrustWork', statusBarStyle: 'default' },
-  icons: { apple: '/icons/icon-192.png' },
+  icons: { apple: '/icons/apple-touch-icon.png' },
 }
 
 export const viewport = {
