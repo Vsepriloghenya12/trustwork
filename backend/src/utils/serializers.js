@@ -11,8 +11,7 @@ export function publicUser(u) {
     rating: u.rating,
     reviewsCount: u.reviewsCount,
     completedDeals: u.completedDeals,
-    telegram: u.telegram,
-    github: u.github,
+    social: u.social,
     isVerified: u.isVerified,
     createdAt: u.createdAt,
   }

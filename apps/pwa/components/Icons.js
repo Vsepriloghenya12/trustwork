@@ -85,6 +85,13 @@ export const PlusIcon = ({ size = 20 }) => (
   </svg>
 )
 
+export const CameraIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} strokeWidth={2.1} aria-hidden>
+    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.2-2h7.2l1.2 2h1.7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-9z" />
+    <circle cx="12" cy="13" r="3.6" />
+  </svg>
+)
+
 export const FileIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
     <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" />

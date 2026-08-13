@@ -53,7 +53,7 @@ export default function PublicProfilePage() {
       </div>
 
       <div className="stack" style={{ alignItems: 'center', textAlign: 'center', gap: 10 }}>
-        <Avatar name={user.name} size={72} />
+        <Avatar name={user.name} src={user.avatarUrl} size={72} />
         <div>
           <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
             <span style={{ fontWeight: 800, fontSize: 19 }}>{user.name || 'Без имени'}</span>
@@ -76,8 +76,16 @@ export default function PublicProfilePage() {
               Проверенный фрилансер
             </span>
           )}
-          {user.telegram && <span className="chip">Telegram</span>}
-          {user.github && <span className="chip">GitHub</span>}
+          {user.social && (
+            <a
+              className="chip"
+              href={user.social.startsWith('http') ? user.social : `https://${user.social}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Соцсеть
+            </a>
+          )}
         </div>
       </div>
 

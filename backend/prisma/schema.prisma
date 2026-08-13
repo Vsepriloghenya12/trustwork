@@ -67,8 +67,8 @@ model User {
   rating         Float    @default(0)
   reviewsCount   Int      @default(0)
   completedDeals Int      @default(0)
-  telegram       String?
-  github         String?
+  // Ссылка на соцсеть или портфолио — «рабочий след» пользователя
+  social         String?
   isVerified     Boolean  @default(false)
   // Доступ к странице владельца: поддержка и арбитраж
   isAdmin        Boolean  @default(false)

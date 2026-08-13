@@ -180,7 +180,7 @@ export default function ProjectPage() {
       <div className="stack" style={{ gap: 10, paddingBottom: 2 }}>
         <div className="row" style={{ gap: 10 }}>
           <Link href={`/users/${project.client.id}`} className="row" style={{ gap: 10, flex: 1 }}>
-            <Avatar name={project.client.name} size={44} />
+            <Avatar name={project.client.name} src={project.client.avatarUrl} size={44} />
             <div style={{ flex: 1 }}>
               <div className="row" style={{ gap: 5 }}>
                 <span style={{ fontWeight: 800, fontSize: 14 }}>
@@ -323,7 +323,7 @@ export default function ProjectPage() {
           {applications?.map((a) => (
             <div key={a.id} className="thread">
               <Link href={`/users/${a.freelancer.id}`} className="row">
-                <Avatar name={a.freelancer.name} size={34} />
+                <Avatar name={a.freelancer.name} src={a.freelancer.avatarUrl} size={34} />
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: 800, fontSize: 14 }}>
                     {a.freelancer.name || 'Фрилансер'}

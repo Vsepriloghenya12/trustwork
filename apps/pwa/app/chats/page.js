@@ -72,7 +72,7 @@ export default function ChatsPage() {
 
       {threads?.map((t) => (
         <Link key={t.project.id} href={t.href} className="list-row">
-          <Avatar name={t.peer?.name || t.project.title} size={44} />
+          <Avatar name={t.peer?.name || t.project.title} src={t.peer?.avatarUrl} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>
               {t.peer?.name || 'Заказчик'}

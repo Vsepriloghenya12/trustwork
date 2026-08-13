@@ -47,8 +47,7 @@ usersRouter.patch('/me', requireAuth, async (req, res) => {
       role: z.enum(['CLIENT', 'FREELANCER']).optional(),
       bio: z.string().max(2000).optional(),
       skills: z.array(z.string().min(1).max(40)).max(20).optional(),
-      telegram: z.string().max(100).optional(),
-      github: z.string().max(100).optional(),
+      social: z.string().max(200).optional(),
     })
     .parse(req.body)
   const user = await prisma.user.update({ where: { id: req.user.id }, data })

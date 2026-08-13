@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Avatar from '@/components/Avatar'
+import AvatarEditor from '@/components/AvatarEditor'
 import {
   VerifiedIcon,
   FileIcon,
@@ -46,8 +46,7 @@ export default function ProfilePage() {
       name: user.name || '',
       bio: user.bio || '',
       skills: (user.skills || []).join(', '),
-      telegram: user.telegram || '',
-      github: user.github || '',
+      social: user.social || '',
     })
     setAboutOpen(true)
     setEditing(true)
@@ -68,8 +67,7 @@ export default function ProfilePage() {
             .map((s) => s.trim())
             .filter(Boolean)
             .slice(0, 20),
-          telegram: form.telegram.trim(),
-          github: form.github.trim(),
+          social: form.social.trim(),
         },
       })
       setUser(updated)
@@ -98,13 +96,20 @@ export default function ProfilePage() {
 
   const isClient = user.role === 'CLIENT'
   const aboutTitle = isClient ? 'О компании' : 'О себе'
-  const aboutFilled = Boolean(user.bio || user.skills?.length || user.telegram || user.github)
+  const aboutFilled = Boolean(user.bio || user.skills?.length || user.social)
 
   return (
     <main className="shell stack" style={{ gap: 14 }}>
       {/* Шапка: аватар слева, рядом имя и телефон */}
       <header className="row" style={{ gap: 14, paddingTop: 4 }}>
-        <Avatar name={user.name} size={62} />
+        <AvatarEditor
+          user={user}
+          size={62}
+          onUpdated={(updated) => {
+            setUser(updated)
+            updateStoredUser(updated)
+          }}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="row" style={{ gap: 6 }}>
             <span style={{ fontWeight: 800, fontSize: 18 }}>{user.name || 'Без имени'}</span>
@@ -129,10 +134,10 @@ export default function ProfilePage() {
               : plural(user.completedDeals, 'сделка', 'сделки', 'сделок')}
           </div>
         </Link>
-        <Link href="/reviews" className="stats-cell">
+        <div className="stats-cell">
           <div className="num">{user.rating > 0 ? user.rating.toFixed(1) : '—'}</div>
           <div className="caption">рейтинг</div>
-        </Link>
+        </div>
         <Link href="/reviews" className="stats-cell">
           <div className="num">{user.reviewsCount}</div>
           <div className="caption">{plural(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов')}</div>
@@ -177,11 +182,16 @@ export default function ProfilePage() {
                 ))}
               </div>
             )}
-            {(user.telegram || user.github) && (
-              <div className="chips">
-                {user.telegram && <span className="chip">Telegram: {user.telegram}</span>}
-                {user.github && <span className="chip">GitHub: {user.github}</span>}
-              </div>
+            {user.social && (
+              <a
+                className="chip"
+                href={user.social.startsWith('http') ? user.social : `https://${user.social}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ alignSelf: 'flex-start' }}
+              >
+                {user.social}
+              </a>
             )}
             <button className="btn btn--ghost btn--compact" onClick={startEdit}>
               Редактировать
@@ -190,42 +200,43 @@ export default function ProfilePage() {
         )}
 
         {aboutOpen && editing && (
+          {/* Подписи полей — прямо в них: подсказка исчезает, когда начинаешь вводить */}
           <form className="accordion__body stack" onSubmit={save}>
-            <div className="field">
-              <label>Имя</label>
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>{isClient ? 'О компании' : 'О себе'}</label>
-              <textarea
-                className="input"
-                rows={4}
-                value={form.bio}
-                onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                placeholder={
-                  isClient
-                    ? 'Чем занимается компания, какие задачи отдаете на фриланс'
-                    : 'Чем занимаетесь, какой опыт'
-                }
-              />
-            </div>
-            <div className="field">
-              <label>{isClient ? 'Сферы работы (через запятую)' : 'Навыки (через запятую)'}</label>
-              <input
-                className="input"
-                value={form.skills}
-                onChange={(e) => setForm({ ...form, skills: e.target.value })}
-                placeholder={isClient ? 'маркетинг, интернет-магазин' : 'дизайн, логотипы'}
-              />
-            </div>
-            <div className="field">
-              <label>Telegram</label>
-              <input className="input" value={form.telegram} onChange={(e) => setForm({ ...form, telegram: e.target.value })} placeholder="username" />
-            </div>
-            <div className="field">
-              <label>GitHub</label>
-              <input className="input" value={form.github} onChange={(e) => setForm({ ...form, github: e.target.value })} placeholder="username" />
-            </div>
+            <input
+              className="input"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Ваше имя"
+              aria-label="Ваше имя"
+            />
+            <textarea
+              className="input"
+              rows={4}
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              placeholder={
+                isClient
+                  ? 'О компании: чем занимаетесь, какие задачи отдаете на фриланс'
+                  : 'О себе: чем занимаетесь, какой опыт'
+              }
+              aria-label={isClient ? 'О компании' : 'О себе'}
+            />
+            <input
+              className="input"
+              value={form.skills}
+              onChange={(e) => setForm({ ...form, skills: e.target.value })}
+              placeholder={
+                isClient ? 'Сферы работы через запятую' : 'Навыки через запятую'
+              }
+              aria-label={isClient ? 'Сферы работы' : 'Навыки'}
+            />
+            <input
+              className="input"
+              value={form.social}
+              onChange={(e) => setForm({ ...form, social: e.target.value })}
+              placeholder="Ссылка на соцсеть или сайт"
+              aria-label="Ссылка на соцсеть или сайт"
+            />
             {error && <div className="form-error">{error}</div>}
             <button className="btn btn--primary" disabled={busy}>
               Сохранить

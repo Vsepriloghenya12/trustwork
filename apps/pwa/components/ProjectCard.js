@@ -30,7 +30,7 @@ export default function ProjectCard({ project }) {
         </span>
       </div>
       <div className="row" style={{ gap: 7 }}>
-        <Avatar name={project.client.name} size={22} />
+        <Avatar name={project.client.name} src={project.client.avatarUrl} size={22} />
         <span className="caption" style={{ fontWeight: 700, color: 'var(--c-muted)' }}>
           {project.client.name || 'Заказчик'}
         </span>
