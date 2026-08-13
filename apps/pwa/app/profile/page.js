@@ -4,15 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Avatar from '@/components/Avatar'
-import {
-  StarIcon,
-  CheckIcon,
-  VerifiedIcon,
-  FileIcon,
-  ChevronIcon,
-  ChatIcon,
-  ShieldIcon,
-} from '@/components/Icons'
+import { StarIcon, CheckIcon, VerifiedIcon, FileIcon, ChevronIcon, ChatIcon } from '@/components/Icons'
 import { api, getToken, clearSession, updateStoredUser } from '@/lib/api'
 
 export default function ProfilePage() {
@@ -199,22 +191,6 @@ export default function ProfilePage() {
             </span>
           </Link>
 
-          {user.isAdmin && (
-            <Link href="/owner" className="list-row">
-              <span className="file-icon">
-                <ShieldIcon size={18} />
-              </span>
-              <span style={{ flex: 1 }}>
-                <span className="file-name" style={{ display: 'block' }}>
-                  Страница владельца
-                </span>
-                <span className="caption">Обращения в поддержку и арбитраж</span>
-              </span>
-              <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
-                <ChevronIcon />
-              </span>
-            </Link>
-          )}
         </section>
       )}
 
