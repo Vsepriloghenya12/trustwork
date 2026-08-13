@@ -5,7 +5,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js'
 import { fundProject, completeProject, refundEscrow } from '../services/escrow.js'
 import { maskContacts } from '../services/moderation.js'
 import { assertTransition } from '../services/projectStateMachine.js'
-import { REVIEW_TAGS, resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
+import { resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
 import { FEED_SORTS, buildFeedOrder } from '../services/feedSort.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
@@ -243,7 +243,6 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
   const body = z
     .object({
       rating: z.number().int().min(1).max(5).optional(),
-      tags: z.array(z.enum(REVIEW_TAGS)).max(3).default([]),
       comment: z.string().max(500).optional(),
     })
     .parse(req.body)
@@ -253,9 +252,6 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
     throw new ApiError(409, 'Оценка исполнителя доступна после завершения сделки')
   }
   if (target.subjectId === req.user.id) throw new ApiError(400, 'Нельзя оценить самого себя')
-  if (!target.allowTags && body.tags.length > 0) {
-    throw new ApiError(400, 'Факт-теги доступны только при оценке заказчика')
-  }
 
   if (target.requiresDialog) {
     const hasDialog = await prisma.message.findFirst({
@@ -273,9 +269,9 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
   if (target.kind === 'DEAL' && !body.rating) throw new ApiError(400, 'Поставьте оценку от 1 до 5')
   if (target.kind === 'DIALOG') {
     if (body.rating) {
-      throw new ApiError(400, 'Звезды доступны после завершенной сделки — сейчас можно оставить факт-теги')
+      throw new ApiError(400, 'Звезды доступны после завершенной сделки')
     }
-    if (body.tags.length === 0) throw new ApiError(400, 'Выберите хотя бы один тег')
+    if (!body.comment?.trim()) throw new ApiError(400, 'Напишите отзыв')
   }
 
   const existing = await prisma.review.findUnique({
@@ -288,14 +284,13 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
     }
     review = await prisma.review.update({
       where: { id: existing.id },
-      data: { kind: target.kind, rating: body.rating, tags: body.tags, comment: body.comment },
+      data: { kind: target.kind, rating: body.rating, comment: body.comment },
     })
   } else {
     review = await prisma.review.create({
       data: {
         kind: target.kind,
         rating: body.rating,
-        tags: body.tags,
         comment: body.comment,
         projectId: project.id,
         subjectId: target.subjectId,

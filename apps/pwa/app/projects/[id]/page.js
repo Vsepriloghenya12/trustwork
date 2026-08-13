@@ -25,16 +25,6 @@ const STATUS_LABELS = {
   CANCELLED: 'Отменен',
 }
 
-// Должен совпадать со списком REVIEW_TAGS на сервере
-const REVIEW_TAGS = [
-  'не отвечает',
-  'просит бесплатное тестовое',
-  'уводит в мессенджер',
-  'вежливое общение',
-  'конкретное ТЗ',
-  'быстро отвечает',
-]
-
 const APPLIABLE = ['OPEN', 'FUNDED']
 
 export default function ProjectPage() {
@@ -51,7 +41,6 @@ export default function ProjectPage() {
   const [pitch, setPitch] = useState('')
   const [pitchSent, setPitchSent] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
-  const [reviewTags, setReviewTags] = useState([])
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewDone, setReviewDone] = useState(false)
@@ -143,7 +132,6 @@ export default function ProjectPage() {
         method: 'POST',
         body: {
           ...(showStars ? { rating: reviewRating } : {}),
-          tags: reviewingFreelancer ? [] : reviewTags,
           ...(reviewComment.trim() ? { comment: reviewComment.trim() } : {}),
         },
       })
@@ -157,12 +145,6 @@ export default function ProjectPage() {
     } finally {
       setBusy(false)
     }
-  }
-
-  function toggleReviewTag(tag) {
-    setReviewTags((tags) =>
-      tags.includes(tag) ? tags.filter((t) => t !== tag) : tags.length < 3 ? [...tags, tag] : tags,
-    )
   }
 
   if (error) {
@@ -181,12 +163,6 @@ export default function ProjectPage() {
       </main>
     )
   }
-
-  const topTags = clientReviews
-    ? Object.entries(clientReviews.tagCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-    : []
 
   return (
     <main className="shell stack">
@@ -230,21 +206,6 @@ export default function ProjectPage() {
           )}
           {reviewDone && <span className="status-pill">Отзыв учтен</span>}
         </div>
-        {topTags.length > 0 && (
-          <div className="chips">
-            {topTags.map(([tag, count]) => (
-              <span key={tag} className="chip">
-                {tag} ×{count}
-              </span>
-            ))}
-          </div>
-        )}
-        {clientReviews && (clientReviews.dialogCount > 0 || clientReviews.dealCount > 0) && (
-          <div className="small muted">
-            Отзывы фрилансеров: {clientReviews.dealCount} за сделки, {clientReviews.dialogCount} после
-            диалогов
-          </div>
-        )}
       </div>
 
       {project.escrowActive || project.escrowReleased ? (
@@ -471,34 +432,21 @@ export default function ProjectPage() {
               </>
             ) : (
               <p className="small muted">
-                Отметьте факты об общении (до 3). Звезды станут доступны после завершенной сделки.
+                Расскажите об общении с заказчиком. Звезды станут доступны после завершенной
+                сделки.
               </p>
-            )}
-            {!reviewingFreelancer && (
-              <div className="chips">
-                {REVIEW_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`chip${reviewTags.includes(tag) ? ' chip--active' : ''}`}
-                    onClick={() => toggleReviewTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
             )}
             <textarea
               className="input"
               rows={3}
               value={reviewComment}
               onChange={(e) => setReviewComment(e.target.value)}
-              placeholder="Комментарий (необязательно)"
+              placeholder={showStars ? 'Комментарий (необязательно)' : 'Ваш отзыв'}
             />
             {actionError && <div className="form-error">{actionError}</div>}
             <button
               className="btn btn--primary"
-              disabled={busy || (showStars ? reviewRating === 0 : reviewTags.length === 0)}
+              disabled={busy || (showStars ? reviewRating === 0 : !reviewComment.trim())}
             >
               Отправить отзыв
             </button>

@@ -43,10 +43,6 @@ export default function PublicProfilePage() {
     )
   }
 
-  const topTags = reviews
-    ? Object.entries(reviews.summary.tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 4)
-    : []
-
   return (
     <main className="shell stack" style={{ gap: 16 }}>
       <div className="topbar" style={{ marginBottom: 0 }}>
@@ -99,19 +95,6 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {topTags.length > 0 && (
-        <section className="stack" style={{ gap: 8 }}>
-          <div className="h-sec">Что говорят фрилансеры</div>
-          <div className="chips">
-            {topTags.map(([tag, count]) => (
-              <span key={tag} className="chip">
-                {tag} ×{count}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
       {user.skills?.length > 0 && (
         <section className="stack" style={{ gap: 8 }}>
           <div className="h-sec">Навыки</div>
@@ -149,15 +132,6 @@ export default function PublicProfilePage() {
                 </span>
               ) : (
                 <span className="caption">после диалога</span>
-              )}
-              {r.tags.length > 0 && (
-                <div className="chips">
-                  {r.tags.map((t) => (
-                    <span key={t} className="chip">
-                      {t}
-                    </span>
-                  ))}
-                </div>
               )}
               {r.comment && <p className="small muted">{r.comment}</p>}
             </div>

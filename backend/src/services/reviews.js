@@ -1,26 +1,15 @@
 import { prisma } from '../lib/prisma.js'
 
-// Факт-теги о заказчике: их сложно накрутить и они информативнее звезд
-export const REVIEW_TAGS = [
-  'не отвечает',
-  'просит бесплатное тестовое',
-  'уводит в мессенджер',
-  'вежливое общение',
-  'конкретное ТЗ',
-  'быстро отвечает',
-]
-
 // Кто кого оценивает и на каких условиях — единственная точка правды.
-// Заказчик → исполнитель: только звезды после завершенной сделки, диалог не требуется
+// Заказчик → исполнитель: звезды после завершенной сделки, диалог не требуется
 // (сам факт найма — достаточная связь). Фрилансер → заказчик: после реального
-// диалога факт-теги, после завершенной сделки — звезды.
+// диалога — отзыв текстом (в рейтинг не идет), после завершенной сделки — звезды.
 export function resolveReviewTarget(project, authorId) {
   if (authorId === project.clientId) {
     return {
       subjectId: project.freelancerId,
       kind: 'DEAL',
       requiresDialog: false,
-      allowTags: false,
       allowed: project.status === 'COMPLETED' && Boolean(project.freelancerId),
     }
   }
@@ -29,7 +18,6 @@ export function resolveReviewTarget(project, authorId) {
     subjectId: project.clientId,
     kind: isDeal ? 'DEAL' : 'DIALOG',
     requiresDialog: true,
-    allowTags: true,
     allowed: true,
   }
 }
