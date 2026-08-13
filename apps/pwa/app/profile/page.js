@@ -170,7 +170,11 @@ export default function ProfilePage() {
           <span style={{ flex: 1, textAlign: 'left' }}>
             <span className="accordion__title">{aboutTitle}</span>
             <span className="caption" style={{ display: 'block' }}>
-              {aboutFilled ? 'Видно фрилансерам в ваших проектах' : 'Не заполнено'}
+              {aboutFilled
+                ? isClient
+                  ? 'Видно фрилансерам в ваших проектах'
+                  : 'Видят заказчики, разбирая ваши отклики'
+                : 'Не заполнено'}
             </span>
           </span>
           <span className={`accordion__chevron${aboutOpen ? ' accordion__chevron--open' : ''}`}>

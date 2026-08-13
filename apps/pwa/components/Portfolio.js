@@ -20,6 +20,8 @@ async function prepare(file) {
 
 export default function Portfolio({ userId, editable = false }) {
   const [items, setItems] = useState(null)
+  const [draft, setDraft] = useState(null)
+  const [pendingRemove, setPendingRemove] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef(null)
@@ -32,12 +34,17 @@ export default function Portfolio({ userId, editable = false }) {
 
   useEffect(load, [load])
 
-  async function add(e) {
+  function pickFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const title = prompt('Название работы', file.name.replace(/\.[^.]+$/, ''))
-    if (title === null) return
+    // Название спрашиваем своей шторкой, а не системным окном браузера
+    setDraft({ file, title: '', preview: URL.createObjectURL(file) })
+  }
+
+  async function add(e) {
+    e.preventDefault()
+    const { file, title } = draft
     setBusy(true)
     setError('')
     try {
@@ -52,6 +59,8 @@ export default function Portfolio({ userId, editable = false }) {
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.error || 'Не удалось добавить работу')
+      URL.revokeObjectURL(draft.preview)
+      setDraft(null)
       load()
     } catch (e) {
       setError(e.message)
@@ -60,11 +69,11 @@ export default function Portfolio({ userId, editable = false }) {
     }
   }
 
-  async function remove(item) {
-    if (!confirm(`Удалить «${item.title}» из портфолио?`)) return
+  async function confirmRemove() {
     setBusy(true)
     try {
-      await api(`/api/users/me/portfolio/${item.id}`, { method: 'DELETE' })
+      await api(`/api/users/me/portfolio/${pendingRemove.id}`, { method: 'DELETE' })
+      setPendingRemove(null)
       load()
     } catch (e) {
       setError(e.message)
@@ -112,7 +121,7 @@ export default function Portfolio({ userId, editable = false }) {
               {editable && (
                 <button
                   className="gallery__remove"
-                  onClick={() => remove(item)}
+                  onClick={() => setPendingRemove(item)}
                   disabled={busy}
                   aria-label={`Удалить ${item.title}`}
                 >
@@ -124,8 +133,49 @@ export default function Portfolio({ userId, editable = false }) {
         </div>
       )}
 
-      <input ref={inputRef} type="file" accept="image/*" hidden onChange={add} />
+      <input ref={inputRef} type="file" accept="image/*" hidden onChange={pickFile} />
       {error && <div className="form-error">{error}</div>}
+
+      {/* Название работы спрашиваем шторкой в стиле приложения */}
+      {draft && (
+        <div className="sheet-backdrop" onClick={() => setDraft(null)}>
+          <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={add}>
+            <div className="title-lg">Новая работа</div>
+            <img
+              src={draft.preview}
+              alt=""
+              style={{ width: '100%', height: 170, objectFit: 'cover', borderRadius: 14 }}
+            />
+            <input
+              className="input"
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="Название работы"
+              aria-label="Название работы"
+              autoFocus
+            />
+            {error && <div className="form-error">{error}</div>}
+            <button className="btn btn--primary" disabled={busy || !draft.title.trim()}>
+              {busy ? 'Загружаем…' : 'Добавить в портфолио'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {pendingRemove && (
+        <div className="sheet-backdrop" onClick={() => setPendingRemove(null)}>
+          <div className="sheet stack" onClick={(e) => e.stopPropagation()}>
+            <div className="title-lg">Удалить работу?</div>
+            <p className="small muted">«{pendingRemove.title}» исчезнет из вашего портфолио.</p>
+            <button className="btn btn--outline-danger" onClick={confirmRemove} disabled={busy}>
+              Удалить
+            </button>
+            <button className="btn btn--ghost" onClick={() => setPendingRemove(null)}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
