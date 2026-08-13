@@ -898,6 +898,20 @@ textarea.input {
   color: var(--c-muted);
 }
 
+/* ---------- Юридические документы ---------- */
+
+.doc-h {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.doc-p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c-muted);
+}
+
 /* ---------- Пустые состояния ---------- */
 
 .empty {

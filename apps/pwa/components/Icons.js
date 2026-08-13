@@ -99,6 +99,12 @@ export const ShieldIcon = ({ size = 16 }) => (
   </svg>
 )
 
+export const ChevronIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} strokeWidth={2.2} aria-hidden>
+    <path d="M9 5l7 7-7 7" />
+  </svg>
+)
+
 export const CalendarIcon = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
     <rect x="3.5" y="5" width="17" height="16" rx="3" />

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Avatar from '@/components/Avatar'
-import { StarIcon, CheckIcon, VerifiedIcon } from '@/components/Icons'
+import { StarIcon, CheckIcon, VerifiedIcon, FileIcon, ChevronIcon } from '@/components/Icons'
 import { api, getToken, clearSession, updateStoredUser } from '@/lib/api'
 
 export default function ProfilePage() {
@@ -151,6 +152,26 @@ export default function ProfilePage() {
       )}
 
       {error && <div className="form-error">{error}</div>}
+
+      {!editing && (
+        <section className="stack" style={{ gap: 0 }}>
+          <div className="h-sec">Прочее</div>
+          <Link href="/legal" className="list-row">
+            <span className="file-icon">
+              <FileIcon />
+            </span>
+            <span style={{ flex: 1 }}>
+              <span className="file-name" style={{ display: 'block' }}>
+                Документы и оферта
+              </span>
+              <span className="caption">Правила расчетов, эскроу и обработки данных</span>
+            </span>
+            <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
+              <ChevronIcon />
+            </span>
+          </Link>
+        </section>
+      )}
 
       {!editing ? (
         <>
