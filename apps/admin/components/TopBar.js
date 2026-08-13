@@ -20,6 +20,14 @@ export default function TopBar({ user }) {
           TrustWork
           <span className="brand__tag">Владелец</span>
         </Link>
+        <nav className="row" style={{ gap: 4, marginLeft: 12 }}>
+          <Link href="/" className="btn btn--quiet">
+            Поддержка
+          </Link>
+          <Link href="/appeals" className="btn btn--quiet">
+            Обжалования
+          </Link>
+        </nav>
         <div style={{ flex: 1 }} />
         {current && (
           <>

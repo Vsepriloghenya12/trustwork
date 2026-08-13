@@ -4,8 +4,17 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Avatar from '@/components/Avatar'
-import { StarIcon, CheckIcon, VerifiedIcon, FileIcon, ChevronIcon, ChatIcon } from '@/components/Icons'
-import { api, getToken, clearSession, updateStoredUser } from '@/lib/api'
+import {
+  StarIcon,
+  CheckIcon,
+  VerifiedIcon,
+  FileIcon,
+  ChevronIcon,
+  ChatIcon,
+  LockIcon,
+  PlusIcon,
+} from '@/components/Icons'
+import { api, getToken, clearSession, updateStoredUser, formatMoney } from '@/lib/api'
 import { plural, withPlural } from '@/lib/text'
 
 export default function ProfilePage() {
@@ -121,7 +130,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="stats-row">
+      <Link href="/reviews" className="stats-row" style={{ textDecoration: 'none' }}>
         <div className="stats-cell">
           <div className="num">
             {user.role === 'CLIENT' ? (user.postedProjects ?? 0) : user.completedDeals}
@@ -140,7 +149,52 @@ export default function ProfilePage() {
           <div className="num">{user.reviewsCount}</div>
           <div className="caption">{plural(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов')}</div>
         </div>
-      </div>
+      </Link>
+      <p className="caption" style={{ marginTop: -8 }}>
+        {user.role === 'CLIENT'
+          ? 'Оценку ставят фрилансеры после завершенных сделок.'
+          : 'Оценку ставят заказчики после завершенных сделок.'}{' '}
+        <Link href="/reviews" style={{ color: 'var(--c-primary)', fontWeight: 700 }}>
+          Смотреть отзывы
+        </Link>
+      </p>
+
+      {user.role === 'CLIENT' && (
+        <section className="section" style={{ gap: 12 }}>
+          <div className="row row--between">
+            <span className="h-sec">Мои проекты</span>
+            <Link href="/my-projects" className="caption" style={{ color: 'var(--c-primary)', fontWeight: 700 }}>
+              Все проекты
+            </Link>
+          </div>
+          <div className="stats-row" style={{ border: 'none', padding: 0 }}>
+            <Link href="/my-projects?tab=open" className="stats-cell">
+              <div className="num">{user.openProjects ?? 0}</div>
+              <div className="caption">открыто</div>
+            </Link>
+            <Link href="/my-projects?tab=work" className="stats-cell">
+              <div className="num">{user.inProgressProjects ?? 0}</div>
+              <div className="caption">в работе</div>
+            </Link>
+            <Link href="/my-projects?tab=done" className="stats-cell">
+              <div className="num">{user.completedProjects ?? 0}</div>
+              <div className="caption">завершено</div>
+            </Link>
+          </div>
+          {user.escrowHeld > 0 && (
+            <div className="escrow-panel" style={{ padding: '12px 14px' }}>
+              <div className="escrow-panel__title" style={{ fontSize: 13 }}>
+                <LockIcon size={14} />
+                В эскроу заморожено: {formatMoney(user.escrowHeld)}
+              </div>
+            </div>
+          )}
+          <Link href="/projects/new" className="btn btn--primary">
+            <PlusIcon size={18} />
+            Разместить проект
+          </Link>
+        </section>
+      )}
 
       {user.skills?.length > 0 && !editing && (
         <section className="stack" style={{ gap: 8 }}>
