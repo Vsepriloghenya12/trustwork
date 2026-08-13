@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Avatar from '@/components/Avatar'
 import EscrowTimeline from '@/components/EscrowTimeline'
+import ProjectFiles from '@/components/ProjectFiles'
 import {
   BackIcon,
   LockIcon,
@@ -254,6 +255,8 @@ export default function ProjectPage() {
         <div className="h-sec">Описание задачи</div>
         <p style={{ whiteSpace: 'pre-wrap', fontSize: 14.5 }}>{project.description}</p>
       </section>
+
+      <ProjectFiles projectId={project.id} isOwner={Boolean(isOwner)} />
 
       {actionError && !pitchOpen && !reviewOpen && <div className="form-error">{actionError}</div>}
 
