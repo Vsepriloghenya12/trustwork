@@ -12,6 +12,26 @@ export const usersRouter = Router()
 // сколько размещено, сколько открыто, сколько в работе и сколько денег в эскроу
 async function withRoleStats(user, serialize) {
   const base = serialize(user)
+  if (user.role === 'FREELANCER') {
+    // Фрилансеру важны деньги: сколько уже выплачено и сколько ждет в эскроу
+    const [earned, inWork, pendingApplications] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { status: 'RELEASED', project: { freelancerId: user.id } },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { status: 'HOLDED', project: { freelancerId: user.id, status: 'IN_PROGRESS' } },
+        _sum: { amount: true },
+      }),
+      prisma.application.count({ where: { freelancerId: user.id, status: 'PENDING' } }),
+    ])
+    return {
+      ...base,
+      earnedTotal: earned._sum.amount ?? 0,
+      inWorkAmount: inWork._sum.amount ?? 0,
+      pendingApplications,
+    }
+  }
   if (user.role !== 'CLIENT') return base
   const [grouped, escrow] = await Promise.all([
     prisma.project.groupBy({
@@ -93,6 +113,77 @@ usersRouter.delete('/me/avatar', requireAuth, async (req, res) => {
     data: { avatarData: null, avatarMime: null, avatarAt: null },
   })
   res.json(await withRoleStats(user, privateUser))
+})
+
+// --- Портфолио ---
+
+const MAX_PORTFOLIO_ITEMS = 10
+
+const portfolioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024, files: 1 },
+})
+
+function serializePortfolioItem(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    link: item.link,
+    imageUrl: `/api/users/${item.userId}/portfolio/${item.id}/image`,
+    createdAt: item.createdAt,
+  }
+}
+
+usersRouter.get('/:id/portfolio', async (req, res) => {
+  const items = await prisma.portfolioItem.findMany({
+    where: { userId: req.params.id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, userId: true, title: true, link: true, createdAt: true },
+  })
+  res.json(items.map(serializePortfolioItem))
+})
+
+usersRouter.post('/me/portfolio', requireAuth, portfolioUpload.single('file'), async (req, res) => {
+  if (!req.file) throw new ApiError(400, 'Добавьте изображение работы')
+  if (!AVATAR_MIME.includes(req.file.mimetype)) {
+    throw new ApiError(400, 'Подойдет JPG, PNG или WebP')
+  }
+  const { title, link } = z
+    .object({ title: z.string().min(1).max(80), link: z.string().max(300).optional() })
+    .parse(req.body)
+
+  const count = await prisma.portfolioItem.count({ where: { userId: req.user.id } })
+  if (count >= MAX_PORTFOLIO_ITEMS) {
+    throw new ApiError(409, `В портфолио помещается ${MAX_PORTFOLIO_ITEMS} работ`)
+  }
+  const item = await prisma.portfolioItem.create({
+    data: {
+      userId: req.user.id,
+      title: title.trim(),
+      link: link?.trim() || null,
+      imageData: req.file.buffer,
+      imageMime: req.file.mimetype,
+    },
+  })
+  res.status(201).json(serializePortfolioItem(item))
+})
+
+usersRouter.delete('/me/portfolio/:itemId', requireAuth, async (req, res) => {
+  const deleted = await prisma.portfolioItem.deleteMany({
+    where: { id: req.params.itemId, userId: req.user.id },
+  })
+  if (deleted.count === 0) throw new ApiError(404, 'Работа не найдена')
+  res.json({ ok: true })
+})
+
+usersRouter.get('/:id/portfolio/:itemId/image', async (req, res) => {
+  const item = await prisma.portfolioItem.findFirst({
+    where: { id: req.params.itemId, userId: req.params.id },
+  })
+  if (!item) throw new ApiError(404, 'Работа не найдена')
+  res.setHeader('Content-Type', item.imageMime)
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  res.send(Buffer.from(item.imageData))
 })
 
 usersRouter.get('/:id/avatar', async (req, res) => {

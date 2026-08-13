@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { LockIcon, FileIcon, PlusIcon } from './Icons'
+import { LockIcon, FileIcon, PlusIcon, TrashIcon } from './Icons'
 import { API_URL, api, getToken } from '@/lib/api'
 
 function formatSize(bytes) {
@@ -115,7 +115,7 @@ export default function ProjectFiles({ projectId, isOwner }) {
       )}
 
       {files?.map((f) => (
-        <div key={f.id} className="file-row">
+        <div key={f.id} className="file-row" style={{ flexWrap: 'nowrap' }}>
           <span className={`file-icon${f.canDownload ? '' : ' file-icon--locked'}`}>
             {f.canDownload ? <FileIcon /> : <LockIcon size={16} />}
           </span>
@@ -132,43 +132,52 @@ export default function ProjectFiles({ projectId, isOwner }) {
             </span>
           </button>
           {isOwner && (
-            <div className="row" style={{ gap: 4 }}>
+            <>
               <button
-                className="btn btn--ghost btn--compact"
+                className="chip"
                 onClick={() => toggleVisibility(f)}
                 disabled={busy}
                 title={
                   f.visibility === 'PUBLIC'
-                    ? 'Сейчас виден всем — закрыть'
-                    : 'Сейчас только откликнувшимся — открыть всем'
+                    ? 'Виден всем — нажмите, чтобы закрыть'
+                    : 'Только откликнувшимся — нажмите, чтобы открыть всем'
                 }
               >
                 {f.visibility === 'PUBLIC' ? 'Всем' : 'Откликнувшимся'}
               </button>
-              <button className="btn btn--outline-danger btn--compact" onClick={() => remove(f)} disabled={busy}>
-                Удалить
+              <button
+                className="icon-action icon-action--danger"
+                onClick={() => remove(f)}
+                disabled={busy}
+                aria-label={`Удалить файл ${f.name}`}
+              >
+                <TrashIcon />
               </button>
-            </div>
+            </>
           )}
         </div>
       ))}
 
       {isOwner && (
         <>
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <span className="caption">Кто откроет новый файл:</span>
-            <button
-              className={`chip${visibility === 'PUBLIC' ? ' chip--active' : ''}`}
-              onClick={() => setVisibility('PUBLIC')}
-            >
-              Все
-            </button>
-            <button
-              className={`chip${visibility === 'APPLICANTS' ? ' chip--active' : ''}`}
-              onClick={() => setVisibility('APPLICANTS')}
-            >
-              Только откликнувшиеся
-            </button>
+          <div className="switch-row">
+            <span className="switch-row__label">Файл увидят</span>
+            <div className="segmented" role="group" aria-label="Кто откроет новый файл">
+              <button
+                className={`segmented__item${visibility === 'PUBLIC' ? ' segmented__item--active' : ''}`}
+                onClick={() => setVisibility('PUBLIC')}
+                aria-pressed={visibility === 'PUBLIC'}
+              >
+                Все
+              </button>
+              <button
+                className={`segmented__item${visibility === 'APPLICANTS' ? ' segmented__item--active' : ''}`}
+                onClick={() => setVisibility('APPLICANTS')}
+                aria-pressed={visibility === 'APPLICANTS'}
+              >
+                Откликнувшиеся
+              </button>
+            </div>
           </div>
           <button
             className="btn btn--ghost"

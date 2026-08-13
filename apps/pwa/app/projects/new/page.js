@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BackIcon, LockIcon, PlusIcon, FileIcon, CheckIcon } from '@/components/Icons'
+import { BackIcon, LockIcon, PlusIcon, FileIcon, CheckIcon, TrashIcon } from '@/components/Icons'
 import { api, getToken, API_URL, formatMoney } from '@/lib/api'
 import {
   CATEGORIES,
@@ -126,7 +126,7 @@ export default function NewProjectPage() {
     title.trim().length >= 5 && description.trim().length >= 20 && budgetValue > 0 && !busy
 
   return (
-    <main className="shell stack" style={{ paddingBottom: 120 }}>
+    <main className="shell stack" style={{ paddingBottom: 40 }}>
       <div className="topbar" style={{ marginBottom: 0 }}>
         <button className="iconbtn" onClick={() => router.back()} aria-label="Назад">
           <BackIcon />
@@ -242,7 +242,7 @@ export default function NewProjectPage() {
           <p className="caption">ТЗ, макеты, примеры — до 5 файлов, каждый до 10 МБ.</p>
 
           {files.map((file, i) => (
-            <div key={`${file.name}-${i}`} className="file-row">
+            <div key={`${file.name}-${i}`} className="file-row" style={{ flexWrap: 'nowrap' }}>
               <span className="file-icon">
                 <FileIcon />
               </span>
@@ -252,31 +252,36 @@ export default function NewProjectPage() {
               </span>
               <button
                 type="button"
-                className="btn btn--outline-danger btn--compact"
+                className="icon-action icon-action--danger"
                 onClick={() => setFiles((list) => list.filter((_, idx) => idx !== i))}
+                aria-label={`Убрать файл ${file.name}`}
               >
-                Убрать
+                <TrashIcon />
               </button>
             </div>
           ))}
 
           {files.length > 0 && (
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-              <span className="caption">Кто откроет файлы:</span>
-              <button
-                type="button"
-                className={`chip${filesVisibility === 'PUBLIC' ? ' chip--active' : ''}`}
-                onClick={() => setFilesVisibility('PUBLIC')}
-              >
-                Все
-              </button>
-              <button
-                type="button"
-                className={`chip${filesVisibility === 'APPLICANTS' ? ' chip--active' : ''}`}
-                onClick={() => setFilesVisibility('APPLICANTS')}
-              >
-                Только откликнувшиеся
-              </button>
+            <div className="switch-row">
+              <span className="switch-row__label">Файлы увидят</span>
+              <div className="segmented" role="group" aria-label="Кто откроет файлы">
+                <button
+                  type="button"
+                  className={`segmented__item${filesVisibility === 'PUBLIC' ? ' segmented__item--active' : ''}`}
+                  onClick={() => setFilesVisibility('PUBLIC')}
+                  aria-pressed={filesVisibility === 'PUBLIC'}
+                >
+                  Все
+                </button>
+                <button
+                  type="button"
+                  className={`segmented__item${filesVisibility === 'APPLICANTS' ? ' segmented__item--active' : ''}`}
+                  onClick={() => setFilesVisibility('APPLICANTS')}
+                  aria-pressed={filesVisibility === 'APPLICANTS'}
+                >
+                  Откликнувшиеся
+                </button>
+              </div>
             </div>
           )}
 

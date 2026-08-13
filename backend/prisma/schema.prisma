@@ -88,6 +88,7 @@ model User {
   reviewsAuthored    Review[]      @relation("AuthoredReviews")
   supportMessages    SupportMessage[]
   appeals            ReviewAppeal[]   @relation("AuthoredAppeals")
+  portfolio          PortfolioItem[]
 }
 
 model Project {
@@ -231,6 +232,20 @@ model SupportMessage {
 
   @@index([userId, createdAt])
   @@index([fromSupport, readAt])
+}
+
+// Работа в портфолио фрилансера: картинка хранится в БД, как и фото профиля
+model PortfolioItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  link      String?
+  imageData Bytes
+  imageMime String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model VerificationCode {

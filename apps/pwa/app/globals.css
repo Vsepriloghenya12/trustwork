@@ -290,6 +290,14 @@ textarea {
   padding: 13px 0;
 }
 
+/* Подписи в строках списка не переносятся — обрезаем многоточием */
+.list-row .caption {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .list-row + .list-row {
   border-top: 1px solid var(--c-line);
 }
@@ -1023,6 +1031,95 @@ textarea.input {
   }
 }
 
+/* ---------- Переключатель из двух-трех вариантов ---------- */
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.switch-row__label {
+  font-size: 12.5px;
+  color: var(--c-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.segmented {
+  display: inline-flex;
+  background: #f0f0f7;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.segmented__item {
+  flex: 1;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--c-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.12s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.segmented__item--active {
+  background: var(--c-surface);
+  color: var(--c-indigo);
+  box-shadow: 0 1px 3px rgba(25, 26, 46, 0.1);
+}
+
+.segmented__item:active {
+  transform: scale(0.96);
+}
+
+/* Кнопка-иконка внутри строки: не разрывает ее на две */
+.icon-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-faint);
+  flex-shrink: 0;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.icon-action:active {
+  transform: scale(0.9);
+  background: #f0f0f7;
+}
+
+.icon-action--danger:active {
+  color: var(--c-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented__item,
+  .icon-action {
+    transition: none;
+  }
+  .segmented__item:active,
+  .icon-action:active {
+    transform: none;
+  }
+}
+
 /* ---------- Выбор варианта карточкой ---------- */
 
 .choice {
@@ -1080,12 +1177,14 @@ textarea.input {
   font-weight: 800;
 }
 
-/* Главное действие всегда под рукой */
+/* Главное действие всегда под рукой; снизу — воздух, чтобы под кнопкой
+   не пряталось содержимое формы */
 .sticky-action {
   position: sticky;
-  bottom: calc(72px + env(safe-area-inset-bottom));
-  padding-top: 8px;
-  background: linear-gradient(to top, var(--c-bg) 72%, transparent);
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  padding: 14px 0 10px;
+  margin-top: 4px;
+  background: linear-gradient(to top, var(--c-bg) 62%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1146,6 +1245,13 @@ textarea.input {
 .file-name {
   font-size: 14px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Подпись под именем файла тоже держим в одну строку */
+.file-main .caption {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

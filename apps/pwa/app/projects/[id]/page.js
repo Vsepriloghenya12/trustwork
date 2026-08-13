@@ -335,17 +335,19 @@ export default function ProjectPage() {
                 </div>
               </Link>
               <p className="small" style={{ whiteSpace: 'pre-wrap' }}>{a.pitch}</p>
-              <div className="row">
+              <div className="row" style={{ gap: 8 }}>
                 <button
                   className="btn btn--primary btn--compact"
+                  style={{ flex: 1 }}
                   onClick={() => accept(a.id)}
                   disabled={busy}
                 >
-                  Выбрать исполнителем
+                  Выбрать
                 </button>
                 <Link
                   href={`/chats/${project.id}?with=${a.freelancer.id}`}
                   className="btn btn--ghost btn--compact"
+                  style={{ flex: 1 }}
                 >
                   Написать
                 </Link>
