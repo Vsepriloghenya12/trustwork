@@ -13,15 +13,25 @@ export function createMockPaymentProvider() {
     },
     async capture(externalId) {
       const payment = payments.get(externalId)
-      if (!payment || payment.status !== 'held') {
-        throw new Error(`Платеж ${externalId} нельзя подтвердить (статус: ${payment?.status ?? 'не найден'})`)
+      // Платежи мока живут в памяти: после перезапуска сервера они забываются.
+      // Такой платеж не должен блокировать сделку — просто предупреждаем.
+      if (!payment) {
+        console.warn(`[payments:mock] платеж ${externalId} неизвестен (перезапуск сервера)`)
+        return
+      }
+      if (payment.status !== 'held') {
+        throw new Error(`Платеж ${externalId} нельзя подтвердить (статус: ${payment.status})`)
       }
       payment.status = 'captured'
     },
     async cancel(externalId) {
       const payment = payments.get(externalId)
-      if (!payment || payment.status !== 'held') {
-        throw new Error(`Платеж ${externalId} нельзя отменить (статус: ${payment?.status ?? 'не найден'})`)
+      if (!payment) {
+        console.warn(`[payments:mock] платеж ${externalId} неизвестен (перезапуск сервера)`)
+        return
+      }
+      if (payment.status !== 'held') {
+        throw new Error(`Платеж ${externalId} нельзя отменить (статус: ${payment.status})`)
       }
       payment.status = 'cancelled'
     },

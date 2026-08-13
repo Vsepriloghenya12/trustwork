@@ -23,7 +23,10 @@ test('после cancel платеж нельзя подтвердить', async
   await assert.rejects(() => provider.cancel(externalId))
 })
 
-test('capture несуществующего платежа — ошибка', async () => {
+test('забытый после перезапуска платеж не блокирует сделку', async () => {
   const provider = createMockPaymentProvider()
-  await assert.rejects(() => provider.capture('mock_nonexistent'))
+  // Мок хранит платежи в памяти: после рестарта они неизвестны,
+  // но приемка и отмена проекта должны оставаться возможными
+  await assert.doesNotReject(() => provider.capture('mock_forgotten'))
+  await assert.doesNotReject(() => provider.cancel('mock_forgotten'))
 })
