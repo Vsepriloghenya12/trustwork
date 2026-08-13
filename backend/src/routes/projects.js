@@ -58,12 +58,14 @@ projectsRouter.get('/', async (req, res) => {
       tag: z.string().optional(),
       search: z.string().optional(),
       sort: z.enum(FEED_SORTS).default('escrow'),
+      // only — показывать лишь проекты с замороженным бюджетом
+      escrow: z.enum(['any', 'only']).default('any'),
       take: z.coerce.number().int().min(1).max(50).default(20),
       skip: z.coerce.number().int().min(0).default(0),
     })
     .parse(req.query)
   const where = {
-    status: { in: APPLIABLE_STATUSES },
+    status: q.escrow === 'only' ? 'FUNDED' : { in: APPLIABLE_STATUSES },
     ...(q.tag ? { tags: { has: q.tag } } : {}),
     ...(q.search
       ? {

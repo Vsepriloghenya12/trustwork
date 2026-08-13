@@ -7,17 +7,18 @@ import { BellIcon, PlusIcon, FeedIcon } from '@/components/Icons'
 import { api, getUser } from '@/lib/api'
 
 // Приоритет показа: с чего начинается лента
+// «Все» — весь список (проекты с эскроу выше), остальные — фильтр и приоритеты
 const SORTS = [
-  { key: 'escrow', label: 'С эскроу' },
-  { key: 'rating', label: 'Рейтинг' },
-  { key: 'budget', label: 'Дороже' },
-  { key: 'new', label: 'Новые' },
+  { key: 'all', label: 'Все', query: 'sort=escrow' },
+  { key: 'escrow', label: 'С эскроу', query: 'escrow=only' },
+  { key: 'rating', label: 'Рейтинг', query: 'sort=rating' },
+  { key: 'budget', label: 'Дороже', query: 'sort=budget' },
 ]
 
 export default function FeedPage() {
   const [projects, setProjects] = useState(null)
   const [user, setUser] = useState(null)
-  const [sort, setSort] = useState('escrow')
+  const [sort, setSort] = useState('all')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -26,7 +27,8 @@ export default function FeedPage() {
 
   useEffect(() => {
     setProjects(null)
-    api(`/api/projects?sort=${sort}`)
+    const query = SORTS.find((s) => s.key === sort)?.query ?? ''
+    api(`/api/projects?${query}`)
       .then(setProjects)
       .catch((e) => setError(e.message))
   }, [sort])
