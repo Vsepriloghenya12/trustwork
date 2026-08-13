@@ -85,6 +85,50 @@ export const PlusIcon = ({ size = 20 }) => (
   </svg>
 )
 
+// --- Направления работ ---
+
+export const BrushIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M15.5 3.5l5 5-8.4 8.4a3 3 0 0 1-1.5.8l-4.3.9.9-4.3a3 3 0 0 1 .8-1.5l7.5-7.5z" />
+    <path d="M5 17c-1.2 1.2-1 4-1 4s2.8.2 4-1" />
+  </svg>
+)
+
+export const CodeIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M8.5 8L4 12l4.5 4M15.5 8l4.5 4-4.5 4M13.5 5l-3 14" />
+  </svg>
+)
+
+export const TextIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M5 6.5h14M5 12h9M5 17.5h11" />
+  </svg>
+)
+
+export const MegaphoneIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M4 10v4a2 2 0 0 0 2 2h1l9 4V4l-9 4H6a2 2 0 0 0-2 2z" />
+    <path d="M19 9.5a3.5 3.5 0 0 1 0 5" />
+  </svg>
+)
+
+export const VideoIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <rect x="3" y="6" width="12" height="12" rx="3" />
+    <path d="M15 11l5.5-3v8L15 13z" />
+  </svg>
+)
+
+export const GridIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <rect x="3.5" y="3.5" width="7" height="7" rx="2.2" />
+    <rect x="13.5" y="3.5" width="7" height="7" rx="2.2" />
+    <rect x="3.5" y="13.5" width="7" height="7" rx="2.2" />
+    <rect x="13.5" y="13.5" width="7" height="7" rx="2.2" />
+  </svg>
+)
+
 export const TrashIcon = ({ size = 17 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
     <path d="M4 7h16M10 4.5h4M6.5 7l.8 12.2a1.8 1.8 0 0 0 1.8 1.8h5.8a1.8 1.8 0 0 0 1.8-1.8L17.5 7" />

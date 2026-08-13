@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import ProjectCard from '@/components/ProjectCard'
+import CategoryRail from '@/components/CategoryRail'
+import FeedSkeleton from '@/components/FeedSkeleton'
 import { BellIcon, PlusIcon, FeedIcon, SearchIcon } from '@/components/Icons'
 import { api, getUser } from '@/lib/api'
 
@@ -19,6 +21,7 @@ export default function FeedPage() {
   const [user, setUser] = useState(null)
   const [sort, setSort] = useState('all')
   const [search, setSearch] = useState('')
+  const [direction, setDirection] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -29,6 +32,7 @@ export default function FeedPage() {
     setProjects(null)
     const params = new URLSearchParams(SORTS.find((s) => s.key === sort)?.query ?? '')
     if (search.trim()) params.set('search', search.trim())
+    if (direction) params.set('tag', direction)
     // Ждем паузу в наборе, чтобы не дергать сервер на каждую букву
     const timer = setTimeout(() => {
       api(`/api/projects?${params}`)
@@ -36,7 +40,7 @@ export default function FeedPage() {
         .catch((e) => setError(e.message))
     }, 300)
     return () => clearTimeout(timer)
-  }, [sort, search])
+  }, [sort, search, direction])
 
   return (
     <main className="shell stack">
@@ -70,6 +74,8 @@ export default function FeedPage() {
         />
       </div>
 
+      <CategoryRail value={direction} onChange={setDirection} />
+
       <div className="filters" role="group" aria-label="Порядок показа проектов">
         {SORTS.map((s) => (
           <button
@@ -84,6 +90,8 @@ export default function FeedPage() {
       </div>
 
       {error && <div className="form-error">{error}</div>}
+
+      {projects === null && !error && <FeedSkeleton />}
 
       {projects?.length === 0 && (
         <div className="empty">
@@ -103,7 +111,7 @@ export default function FeedPage() {
       )}
 
       {projects?.length > 0 && (
-        <div className="list">
+        <div className="list rise" key={`${direction}-${sort}-${search}`}>
           {projects.map((p) => (
             <ProjectCard key={p.id} project={p} />
           ))}

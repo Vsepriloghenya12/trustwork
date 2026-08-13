@@ -5,7 +5,10 @@ import { formatMoney, formatDate } from '@/lib/api'
 
 export default function ProjectCard({ project }) {
   return (
-    <Link href={`/projects/${project.id}`} className="project-row">
+    <Link
+      href={`/projects/${project.id}`}
+      className={`project-row${project.escrowActive ? ' project-row--escrow' : ''}`}
+    >
       <div className="row row--between">
         {project.escrowActive ? (
           <span className="badge-escrow">
