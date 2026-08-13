@@ -6,6 +6,7 @@ import { fundProject, completeProject, refundEscrow } from '../services/escrow.j
 import { maskContacts } from '../services/moderation.js'
 import { assertTransition } from '../services/projectStateMachine.js'
 import { REVIEW_TAGS, resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
+import { FEED_SORTS, buildFeedOrder } from '../services/feedSort.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
 
@@ -56,6 +57,7 @@ projectsRouter.get('/', async (req, res) => {
     .object({
       tag: z.string().optional(),
       search: z.string().optional(),
+      sort: z.enum(FEED_SORTS).default('escrow'),
       take: z.coerce.number().int().min(1).max(50).default(20),
       skip: z.coerce.number().int().min(0).default(0),
     })
@@ -75,8 +77,7 @@ projectsRouter.get('/', async (req, res) => {
   const projects = await prisma.project.findMany({
     where,
     include: projectInclude,
-    // status asc: FUNDED раньше OPEN в порядке enum — проекты с эскроу выше в ленте
-    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+    orderBy: buildFeedOrder(q.sort),
     take: q.take,
     skip: q.skip,
   })
