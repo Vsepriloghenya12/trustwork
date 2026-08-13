@@ -1023,6 +1023,80 @@ textarea.input {
   }
 }
 
+/* ---------- Выбор варианта карточкой ---------- */
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1.5px solid var(--c-line);
+  background: var(--c-surface);
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.12s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.choice:active {
+  transform: scale(0.99);
+}
+
+.choice--active {
+  border-color: var(--c-primary);
+  border-width: 2px;
+  background: var(--c-primary-soft);
+  padding: 13px;
+}
+
+.choice__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: #f0f0f7;
+  color: var(--c-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.choice__icon--green {
+  background: var(--c-green-bg);
+  color: var(--c-green-ink);
+}
+
+.choice__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice__title {
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+/* Главное действие всегда под рукой */
+.sticky-action {
+  position: sticky;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-top: 8px;
+  background: linear-gradient(to top, var(--c-bg) 72%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice {
+    transition: none;
+  }
+  .choice:active {
+    transform: none;
+  }
+}
+
 /* ---------- Файлы задачи ---------- */
 
 .file-row {
