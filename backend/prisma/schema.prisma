@@ -30,6 +30,13 @@ enum ReviewKind {
   DEAL
 }
 
+// Кто может открыть вложение проекта. Список файлов виден всем в любом случае —
+// закрытые помечены замком и открываются только откликнувшимся.
+enum FileVisibility {
+  PUBLIC
+  APPLICANTS
+}
+
 enum ApplicationStatus {
   PENDING
   ACCEPTED
@@ -89,8 +96,25 @@ model Project {
   transactions Transaction[]
   messages     Message[]
   reviews      Review[]
+  files        ProjectFile[]
 
   @@index([status, createdAt])
+}
+
+// Вложения к задаче (ТЗ, примеры). Содержимое лежит в БД: для MVP этого хватает,
+// лимиты — 10 МБ на файл и 5 файлов на проект.
+model ProjectFile {
+  id         String         @id @default(cuid())
+  name       String
+  mimeType   String
+  size       Int
+  data       Bytes
+  visibility FileVisibility @default(PUBLIC)
+  projectId  String
+  project    Project        @relation(fields: [projectId], references: [id])
+  createdAt  DateTime       @default(now())
+
+  @@index([projectId])
 }
 
 // Двусторонняя оценка по проекту. subject — кого оценивают, author — кто.

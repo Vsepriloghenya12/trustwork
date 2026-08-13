@@ -7,6 +7,7 @@ import { maskContacts } from '../services/moderation.js'
 import { assertTransition } from '../services/projectStateMachine.js'
 import { resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
 import { FEED_SORTS, buildFeedOrder } from '../services/feedSort.js'
+import { filesRouter } from './files.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
 
@@ -50,6 +51,9 @@ function assertOwner(project, user) {
 }
 
 export const projectsRouter = Router()
+
+// Вложения к задаче: /api/projects/:id/files
+projectsRouter.use('/:id/files', filesRouter)
 
 // Лента: только проекты с замороженным бюджетом
 projectsRouter.get('/', async (req, res) => {
