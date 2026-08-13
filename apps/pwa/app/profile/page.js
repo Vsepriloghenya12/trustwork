@@ -199,8 +199,8 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Подписи полей — прямо в них: подсказка исчезает, когда начинаешь вводить */}
         {aboutOpen && editing && (
-          {/* Подписи полей — прямо в них: подсказка исчезает, когда начинаешь вводить */}
           <form className="accordion__body stack" onSubmit={save}>
             <input
               className="input"
