@@ -217,6 +217,29 @@ textarea {
   border-top: 1px solid var(--c-line);
 }
 
+/* ---------- Фильтры ленты ---------- */
+
+.filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* край-в-край: чипы прокручиваются от границы экрана */
+  margin: 0 -20px;
+  padding: 2px 20px 4px;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.filters .chip {
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 14px;
+}
+
 /* ---------- Лента: плоский список с разделителями ---------- */
 
 .list {

@@ -6,17 +6,30 @@ import ProjectCard from '@/components/ProjectCard'
 import { BellIcon, PlusIcon, FeedIcon } from '@/components/Icons'
 import { api, getUser } from '@/lib/api'
 
+// Приоритет показа: с чего начинается лента
+const SORTS = [
+  { key: 'escrow', label: 'Сначала с эскроу' },
+  { key: 'rating', label: 'Высокий рейтинг' },
+  { key: 'budget', label: 'Сначала дорогие' },
+  { key: 'new', label: 'Новые' },
+]
+
 export default function FeedPage() {
   const [projects, setProjects] = useState(null)
   const [user, setUser] = useState(null)
+  const [sort, setSort] = useState('escrow')
   const [error, setError] = useState('')
 
   useEffect(() => {
     setUser(getUser())
-    api('/api/projects')
+  }, [])
+
+  useEffect(() => {
+    setProjects(null)
+    api(`/api/projects?sort=${sort}`)
       .then(setProjects)
       .catch((e) => setError(e.message))
-  }, [])
+  }, [sort])
 
   return (
     <main className="shell stack">
@@ -40,14 +53,20 @@ export default function FeedPage() {
         <h1 className="title-xl">
           {user?.name ? `Здравствуйте, ${user.name.split(' ')[0]}!` : 'Лента проектов'}
         </h1>
-        <p className="sub" style={{ marginTop: 3 }}>
-          {projects === null && !error
-            ? 'Загружаем проекты…'
-            : projects?.length
-              ? `Открытых проектов: ${projects.length}. С эскроу — выше: их бюджет уже у платформы.`
-              : 'Проекты с эскроу показываются выше — их бюджет уже у платформы.'}
-        </p>
       </header>
+
+      <div className="filters" role="group" aria-label="Порядок показа проектов">
+        {SORTS.map((s) => (
+          <button
+            key={s.key}
+            className={`chip${sort === s.key ? ' chip--active' : ''}`}
+            onClick={() => setSort(s.key)}
+            aria-pressed={sort === s.key}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
 
       {error && <div className="form-error">{error}</div>}
 
