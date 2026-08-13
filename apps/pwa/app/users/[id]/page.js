@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Avatar from '@/components/Avatar'
+import Portfolio from '@/components/Portfolio'
 import { BackIcon, StarIcon, CheckIcon, VerifiedIcon } from '@/components/Icons'
 import { api, formatDate } from '@/lib/api'
 import { plural } from '@/lib/text'
@@ -127,10 +128,12 @@ export default function PublicProfilePage() {
 
       {user.bio && (
         <section className="stack" style={{ gap: 6 }}>
-          <div className="h-sec">О себе</div>
+          <div className="h-sec">{user.role === 'CLIENT' ? 'О компании' : 'О себе'}</div>
           <p className="small">{user.bio}</p>
         </section>
       )}
+
+      <Portfolio userId={user.id} />
 
       {reviews?.reviews.length > 0 && (
         <section className="stack" style={{ gap: 0 }}>
