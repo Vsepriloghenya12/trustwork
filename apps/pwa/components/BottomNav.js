@@ -30,24 +30,43 @@ export default function BottomNav() {
 
   // На экранах входа и внутри чата навигация не нужна
   if (pathname === '/login' || /^\/chats\/.+/.test(pathname)) return null
+
+  const activeIndex = items.findIndex(({ href }) =>
+    href === '/' ? pathname === '/' : pathname.startsWith(href),
+  )
+
   return (
     <nav className="nav" aria-label="Основная навигация">
-      {items.map(({ href, label, icon: Icon }) => {
-        const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
-        return (
-          <Link key={href} href={href} className={`nav__item${active ? ' nav__item--active' : ''}`}>
-            <span className="nav__icon">
-              <Icon />
-              {href === '/chats' && unread > 0 && (
-                <span className="nav__badge" aria-label={`Непрочитанных: ${unread}`}>
-                  {unread > 9 ? '9+' : unread}
-                </span>
-              )}
-            </span>
-            {label}
-          </Link>
-        )
-      })}
+      {/* Подложка переезжает к выбранному разделу, а не мигает на месте */}
+      {activeIndex >= 0 && (
+        <span
+          className="nav__indicator"
+          aria-hidden
+          style={{
+            left: 8,
+            width: `calc((100% - 16px) / ${items.length})`,
+            transform: `translateX(calc(${activeIndex} * 100%))`,
+          }}
+        />
+      )}
+      {items.map(({ href, label, icon: Icon }, i) => (
+        <Link
+          key={href}
+          href={href}
+          className={`nav__item${i === activeIndex ? ' nav__item--active' : ''}`}
+          aria-current={i === activeIndex ? 'page' : undefined}
+        >
+          <span className="nav__icon">
+            <Icon />
+            {href === '/chats' && unread > 0 && (
+              <span className="nav__badge" aria-label={`Непрочитанных: ${unread}`}>
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </span>
+          {label}
+        </Link>
+      ))}
     </nav>
   )
 }
