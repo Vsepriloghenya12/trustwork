@@ -265,15 +265,19 @@ export default function ProjectPage() {
       {/* ---- Действия по ролям ---- */}
 
       {!user && APPLIABLE.includes(project.status) && (
-        <Link href="/login" className="btn btn--primary">
-          Войти, чтобы предложить себя
-        </Link>
+        <div className="sticky-action">
+          <Link href="/login" className="btn btn--primary">
+            Войти, чтобы предложить себя
+          </Link>
+        </div>
       )}
 
       {user && !isOwner && APPLIABLE.includes(project.status) && !pitchSent && !isAssignee && (
-        <button className="btn btn--primary" onClick={() => setPitchOpen(true)}>
-          Предложить себя
-        </button>
+        <div className="sticky-action">
+          <button className="btn btn--primary" onClick={() => setPitchOpen(true)}>
+            Предложить себя за {formatMoney(project.budget, project.currency)}
+          </button>
+        </div>
       )}
       {pitchSent && (
         <div className="row" style={{ justifyContent: 'center' }}>
@@ -395,6 +399,8 @@ export default function ProjectPage() {
       {pitchOpen && (
         <div className="sheet-backdrop" onClick={() => setPitchOpen(false)}>
           <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendPitch}>
+            {/* Ручка: видно, что панель можно потянуть вниз */}
+            <span className="sheet__handle" aria-hidden />
             <div className="title-lg">Предложить себя</div>
             <p className="small muted">
               Короткий питч работает лучше шаблона: чем поможете и почему именно вы.
@@ -419,6 +425,8 @@ export default function ProjectPage() {
       {reviewOpen && (
         <div className="sheet-backdrop" onClick={() => setReviewOpen(false)}>
           <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendReview}>
+            {/* Ручка: видно, что панель можно потянуть вниз */}
+            <span className="sheet__handle" aria-hidden />
             <div className="title-lg">
               {reviewingFreelancer ? 'Оценить исполнителя' : 'Оценить заказчика'}
             </div>

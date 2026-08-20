@@ -134,6 +134,8 @@ export default function MyReviewsPage() {
       {appealFor && (
         <div className="sheet-backdrop" onClick={() => setAppealFor(null)}>
           <form className="sheet stack" onClick={(e) => e.stopPropagation()} onSubmit={sendAppeal}>
+            {/* Ручка: видно, что панель можно потянуть вниз */}
+            <span className="sheet__handle" aria-hidden />
             <div className="title-lg">Обжаловать отзыв</div>
             <p className="small muted">
               Опишите, почему оценка несправедлива. Поддержка изучит переписку и файлы по проекту:

@@ -1773,3 +1773,65 @@ textarea.input {
     transition: none;
   }
 }
+
+/* ---------- Экран входа ---------- */
+
+.login {
+  padding-top: 0;
+  padding-bottom: 32px;
+  gap: 18px;
+}
+
+/* Темная шапка во всю ширину: первое, что видит новый пользователь */
+.login__hero {
+  position: relative;
+  overflow: hidden;
+  margin: 0 -20px 4px;
+  padding: 46px 24px 30px;
+  background:
+    radial-gradient(115% 130% at 82% -12%, #352c85 0%, transparent 60%),
+    linear-gradient(165deg, #1f1a4c 0%, var(--c-ink-deep) 74%);
+  color: #fff;
+  border-radius: 0 0 28px 28px;
+}
+
+.login__hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 14px 14px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.login__logo {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display), sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #fff;
+}
+
+.login__claim {
+  position: relative;
+  z-index: 1;
+  margin-top: 20px;
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.login__sub {
+  position: relative;
+  z-index: 1;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.66);
+}

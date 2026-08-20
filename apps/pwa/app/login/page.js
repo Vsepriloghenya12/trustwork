@@ -64,16 +64,22 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="shell shell--bare stack" style={{ justifyContent: 'center', minHeight: '100dvh' }}>
-      <div style={{ textAlign: 'center', marginBottom: 8 }}>
-        <span className="logo" style={{ fontSize: 26 }}>
+    <main className="shell shell--bare stack login">
+      <header className="login__hero">
+        <span className="login__logo">
           TrustWork
           <span className="logo__dot" />
         </span>
-        <p className="muted small" style={{ marginTop: 8 }}>
-          Отклики бесплатны. Оплата — под защитой эскроу.
+        <h1 className="login__claim">
+          Работайте спокойно:
+          <br />
+          деньги под замком
+        </h1>
+        <p className="login__sub">
+          Бюджет замораживается на платформе до сдачи работы — исполнитель видит, что оплата уже
+          на месте.
         </p>
-      </div>
+      </header>
 
       {step === 'phone' && (
         <form className="stack" onSubmit={requestCode}>
