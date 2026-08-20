@@ -370,7 +370,9 @@ textarea {
   overflow-x: auto;
   scrollbar-width: none;
   margin: 0 -20px;
-  padding: 4px 20px 6px;
+  /* Горизонтальная прокрутка режет все, что выходит за края по вертикали,
+     поэтому оставляем сверху место под обводку активной плитки */
+  padding: 12px 20px 8px;
 }
 
 .rail::-webkit-scrollbar {
