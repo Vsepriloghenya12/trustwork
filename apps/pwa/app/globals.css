@@ -1591,108 +1591,6 @@ textarea.input {
   margin-bottom: 4px;
 }
 
-/* ---------- Щит доверия: фирменный блок ленты ---------- */
-
-.trust {
-  position: relative;
-  overflow: hidden;
-  border-radius: 20px;
-  padding: 16px 18px 15px;
-  background:
-    radial-gradient(120% 140% at 88% -20%, #322a7a 0%, transparent 58%),
-    linear-gradient(160deg, #1d1846 0%, var(--c-ink-deep) 72%);
-  color: #fff;
-  box-shadow: var(--shadow-deep);
-}
-
-/* Едва заметная сетка точек — фактура вместо плоской заливки */
-.trust::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.11) 1px, transparent 1px);
-  background-size: 13px 13px;
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.trust__row {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.trust__label {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-/* Пульс: деньги защищены прямо сейчас */
-.trust__pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #3ddc97;
-  box-shadow: 0 0 0 0 rgba(61, 220, 151, 0.55);
-  animation: pulse 2.4s var(--ease-out) infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(61, 220, 151, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 9px rgba(61, 220, 151, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(61, 220, 151, 0);
-  }
-}
-
-.trust__sum {
-  position: relative;
-  z-index: 1;
-  font-family: var(--font-display), sans-serif;
-  font-size: 27px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  margin: 5px 0 2px;
-  line-height: 1.1;
-}
-
-.trust__meta {
-  position: relative;
-  z-index: 1;
-  font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.trust__meta b {
-  color: rgba(255, 255, 255, 0.92);
-  font-weight: 700;
-}
-
-.trust__lock {
-  position: relative;
-  z-index: 1;
-  margin-left: auto;
-  width: 38px;
-  height: 38px;
-  border-radius: 13px;
-  background: rgba(61, 220, 151, 0.14);
-  border: 1px solid rgba(61, 220, 151, 0.3);
-  color: #3ddc97;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* ---------- Липкая шапка ленты ---------- */
 
 .feed-sticky {
@@ -1767,7 +1665,6 @@ textarea.input {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trust__pulse,
   .pull__spinner--busy {
     animation: none;
   }

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import ProjectCard from '@/components/ProjectCard'
 import CategoryRail from '@/components/CategoryRail'
 import FeedSkeleton from '@/components/FeedSkeleton'
-import TrustBanner from '@/components/TrustBanner'
 import { BellIcon, PlusIcon, FeedIcon, SearchIcon } from '@/components/Icons'
 import { api, getUser } from '@/lib/api'
 import { useSwipe, usePullToRefresh } from '@/lib/gestures'
@@ -104,8 +103,6 @@ export default function FeedPage() {
           </Link>
         </div>
       </header>
-
-      <TrustBanner projects={projects} />
 
       <div className="search-field">
         <SearchIcon size={18} />
