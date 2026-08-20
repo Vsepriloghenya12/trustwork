@@ -105,7 +105,7 @@ export default function FeedPage() {
         </div>
       </header>
 
-      <TrustBanner />
+      <TrustBanner projects={projects} />
 
       <div className="search-field">
         <SearchIcon size={18} />

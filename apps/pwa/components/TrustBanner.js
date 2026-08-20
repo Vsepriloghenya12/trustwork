@@ -12,7 +12,9 @@ function useCountUp(target, active) {
 
   useEffect(() => {
     if (!active) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // В фоновой вкладке кадры не выдаются — показываем итог сразу, без анимации
+    if (reduced || document.visibilityState !== 'visible') {
       setValue(target)
       return
     }
@@ -20,29 +22,54 @@ function useCountUp(target, active) {
     const duration = 900
     const tick = (now) => {
       const progress = Math.min(1, (now - started) / duration)
-      // мягкое торможение к концу
       const eased = 1 - Math.pow(1 - progress, 3)
       setValue(Math.round(target * eased))
       if (progress < 1) frame.current = requestAnimationFrame(tick)
     }
     frame.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame.current)
+    // Страховка: если анимацию прервали, итоговое число все равно верное
+    const settle = setTimeout(() => setValue(target), duration + 250)
+    return () => {
+      cancelAnimationFrame(frame.current)
+      clearTimeout(settle)
+    }
   }, [target, active])
 
   return value
 }
 
-export default function TrustBanner() {
+// projects — то, что уже загружено в ленту. По ним считаем цифры, пока
+// сервер не отдаст точную статистику по всей платформе.
+// Пока сервер не обновлен, эндпоинта статистики может не быть.
+// Запрашиваем один раз за сеанс, дальше считаем по ленте.
+let statsUnavailable = false
+
+export default function TrustBanner({ projects }) {
   const [stats, setStats] = useState(null)
-  const shown = useCountUp(stats?.escrowHeld ?? 0, Boolean(stats))
 
   useEffect(() => {
+    if (statsUnavailable) return
     api('/api/stats')
       .then(setStats)
-      .catch(() => {})
+      .catch(() => {
+        statsUnavailable = true
+      })
   }, [])
 
-  if (!stats) return null
+  const fromFeed = projects?.length
+    ? {
+        escrowHeld: projects
+          .filter((p) => p.escrowActive)
+          .reduce((sum, p) => sum + p.budget, 0),
+        openProjects: projects.length,
+        completedDeals: null,
+      }
+    : null
+
+  const data = stats ?? fromFeed
+  const shown = useCountUp(data?.escrowHeld ?? 0, Boolean(data))
+
+  if (!data) return null
 
   return (
     <section className="trust" aria-label="Деньги под защитой платформы">
@@ -55,9 +82,15 @@ export default function TrustBanner() {
       </div>
       <div className="trust__sum">{formatMoney(shown)}</div>
       <div className="trust__meta">
-        <b>{stats.openProjects}</b> {plural(stats.openProjects, 'проект', 'проекта', 'проектов')} ждут
-        исполнителя · <b>{stats.completedDeals}</b>{' '}
-        {plural(stats.completedDeals, 'сделка', 'сделки', 'сделок')} завершено
+        <b>{data.openProjects}</b> {plural(data.openProjects, 'проект', 'проекта', 'проектов')} ждут
+        исполнителя
+        {data.completedDeals !== null && (
+          <>
+            {' · '}
+            <b>{data.completedDeals}</b>{' '}
+            {plural(data.completedDeals, 'сделка', 'сделки', 'сделок')} завершено
+          </>
+        )}
       </div>
     </section>
   )
