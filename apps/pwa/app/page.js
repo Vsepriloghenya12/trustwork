@@ -231,7 +231,8 @@ export default function FeedPage() {
 
       <CategoryRail value={direction} onChange={setDirection} />
 
-      <div ref={sentinel} style={{ height: 1, margin: 0 }} aria-hidden />
+      {/* Датчик прокрутки: вне потока, чтобы не добавлять пустой отступ */}
+      <div ref={sentinel} style={{ position: 'absolute', height: 1, width: 1 }} aria-hidden />
 
       <div className={`feed-sticky${stuck ? ' feed-sticky--stuck' : ''}`}>
         <div className="filters" role="group" aria-label="Порядок показа проектов">

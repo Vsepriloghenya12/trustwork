@@ -67,17 +67,19 @@ export default function InvitationsBlock({ onChanged }) {
                 <span className="file-name" style={{ display: 'block' }}>
                   {project.title}
                 </span>
-                <span className="caption row" style={{ gap: 6 }}>
-                  {formatMoney(project.budget, project.currency)}
+                <span className="caption row" style={{ gap: 5, flexWrap: 'wrap' }}>
+                  <span>{formatMoney(project.budget, project.currency)}</span>
+                  <span aria-hidden>·</span>
                   {project.escrowActive ? (
                     <span className="row" style={{ gap: 3, color: 'var(--c-green-ink)', fontWeight: 700 }}>
                       <LockIcon size={11} />
                       эскроу
                     </span>
                   ) : (
-                    'без эскроу'
+                    <span>без эскроу</span>
                   )}
-                  · до {formatDate(invitation.expiresAt)}
+                  <span aria-hidden>·</span>
+                  <span>до {formatDate(invitation.expiresAt)}</span>
                 </span>
               </span>
             </Link>

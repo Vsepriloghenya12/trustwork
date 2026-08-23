@@ -1598,7 +1598,7 @@ textarea.input {
   top: 0;
   z-index: 12;
   background: var(--c-bg);
-  padding: 10px 0 6px;
+  padding: 2px 0 6px;
   margin: 0 -20px;
   padding-left: 20px;
   padding-right: 20px;
