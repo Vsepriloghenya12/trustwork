@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api, setSession, updateStoredUser } from '@/lib/api'
 import { LockIcon, CheckIcon, StarIcon } from '@/components/Icons'
+import { CATEGORIES } from '@/lib/constants'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [role, setRole] = useState('FREELANCER')
+  const [skills, setSkills] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -53,7 +55,11 @@ export default function LoginPage() {
     setBusy(true)
     setError('')
     try {
-      const user = await api('/api/users/me', { method: 'PATCH', body: { name, role } })
+      const user = await api('/api/users/me', {
+        method: 'PATCH',
+        // Навыки решают, попадет ли фрилансер в подборки заказчиков
+        body: { name, role, ...(role === 'FREELANCER' ? { skills } : {}) },
+      })
       updateStoredUser(user)
       router.replace('/')
     } catch (e) {
@@ -204,6 +210,32 @@ export default function LoginPage() {
               autoFocus
             />
           </div>
+          {role === 'FREELANCER' && (
+            <section className="stack" style={{ gap: 8 }}>
+              <div className="h-sec">Чем занимаетесь</div>
+              <p className="caption">
+                По этим направлениям заказчики будут находить вас в подборках. Можно выбрать
+                несколько.
+              </p>
+              <div className="chips">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`chip${skills.includes(cat) ? ' chip--active' : ''}`}
+                    onClick={() =>
+                      setSkills((list) =>
+                        list.includes(cat) ? list.filter((s) => s !== cat) : [...list, cat],
+                      )
+                    }
+                    aria-pressed={skills.includes(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           {error && <div className="form-error">{error}</div>}
           <button className="btn btn--primary" disabled={busy || !name.trim()}>
             Начать работу

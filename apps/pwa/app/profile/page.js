@@ -268,6 +268,14 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {/* Без навыков фрилансер не попадает в подборки заказчиков */}
+      {!isClient && !user.skills?.length && !editing && (
+        <button className="notice notice--action" onClick={startEdit}>
+          <b>Заполните навыки</b> — иначе заказчики не найдут вас в подборках исполнителей.
+          Нажмите, чтобы добавить.
+        </button>
+      )}
+
       {isClient && user.escrowHeld > 0 && (
         <div className="escrow-panel" style={{ padding: '12px 14px' }}>
           <div className="escrow-panel__title" style={{ fontSize: 13 }}>

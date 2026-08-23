@@ -168,3 +168,15 @@ export const CalendarIcon = ({ size = 14 }) => (
     <path d="M8 3v4M16 3v4M3.5 10h17" />
   </svg>
 )
+
+export const FilterIcon = ({ size = 19 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M4 6.5h16M7 12h10M10.5 17.5h3" />
+  </svg>
+)
+
+export const BookmarkIcon = ({ size = 19 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" {...base} aria-hidden>
+    <path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4-6.5 4V5a1 1 0 0 1 1-1z" />
+  </svg>
+)

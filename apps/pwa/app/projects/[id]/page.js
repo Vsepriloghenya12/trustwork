@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Avatar from '@/components/Avatar'
 import EscrowTimeline from '@/components/EscrowTimeline'
 import ProjectFiles from '@/components/ProjectFiles'
+import CandidatesBlock from '@/components/CandidatesBlock'
 import {
   BackIcon,
   LockIcon,
@@ -259,6 +260,8 @@ export default function ProjectPage() {
       </section>
 
       <ProjectFiles projectId={project.id} isOwner={Boolean(isOwner)} />
+
+      {isOwner && APPLIABLE.includes(project.status) && <CandidatesBlock projectId={project.id} />}
 
       {actionError && !pitchOpen && !reviewOpen && <div className="form-error">{actionError}</div>}
 
