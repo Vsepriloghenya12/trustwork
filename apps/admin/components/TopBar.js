@@ -27,6 +27,9 @@ export default function TopBar({ user }) {
           <Link href="/appeals" className="btn btn--quiet">
             Обжалования
           </Link>
+          <Link href="/arbitration" className="btn btn--quiet">
+            Разбирательства
+          </Link>
         </nav>
         <div style={{ flex: 1 }} />
         {current && (

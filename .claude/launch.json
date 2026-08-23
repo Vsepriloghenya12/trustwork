@@ -4,8 +4,24 @@
     {
       "name": "pwa",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/pwa"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "apps/pwa"
+      ],
       "port": 3100
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "apps/admin"
+      ],
+      "port": 3200
     }
   ]
 }
