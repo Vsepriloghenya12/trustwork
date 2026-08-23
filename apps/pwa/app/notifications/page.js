@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BackIcon, BellIcon, LockIcon, StarIcon, ChatIcon, CheckIcon, FileIcon } from '@/components/Icons'
 import { api, getToken, formatDate, formatTime } from '@/lib/api'
-import { enablePush, disablePush, pushPermission, pushSupported, isIosWithoutInstall } from '@/lib/push'
+import { enablePush, disablePush, pushState, pushSupported, isIosWithoutInstall } from '@/lib/push'
 
 // У каждого типа события своя иконка и цвет — список читается по диагонали
 const KINDS = {
@@ -45,7 +45,7 @@ export default function NotificationsPage() {
       return
     }
     load()
-    setPushOn(pushPermission() === 'granted')
+    pushState().then(setPushOn)
   }, [load, router])
 
   async function togglePush() {

@@ -20,8 +20,16 @@ export function vapidPublicKey() {
   return publicKey ?? null
 }
 
-// Отправка на все устройства пользователя. Мертвые подписки удаляем:
-// браузер отвечает 404 или 410, когда разрешение отозвано.
+// Подписку удаляем, только когда она заведомо мертва:
+// 404/410 — разрешение отозвано; 403 с VapidPkHashMismatch — подписка оформлена
+// на прежние ключи VAPID. Прочие 403 (например, наш сервер поднялся без ключей)
+// не трогаем: иначе одна неудачная выкладка снесет подписки всех пользователей.
+function isDeadSubscription(e) {
+  if (e.statusCode === 404 || e.statusCode === 410) return true
+  return e.statusCode === 403 && String(e.body ?? '').includes('VapidPkHashMismatch')
+}
+
+// Отправка на все устройства пользователя.
 export async function sendPush(userId, payload) {
   if (!pushEnabled) return
   const user = await prisma.user.findUnique({
@@ -39,7 +47,7 @@ export async function sendPush(userId, payload) {
           body,
         )
       } catch (e) {
-        if (e.statusCode === 404 || e.statusCode === 410) {
+        if (isDeadSubscription(e)) {
           await prisma.pushDevice.delete({ where: { id: device.id } }).catch(() => {})
         } else {
           console.error('[push]', e.statusCode, e.body ?? e.message)

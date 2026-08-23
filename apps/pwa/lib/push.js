@@ -11,6 +11,16 @@ function decodeKey(base64) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
 }
 
+// Обратное преобразование: подписка хранит ключ сервера как ArrayBuffer
+function encodeKey(buffer) {
+  if (!buffer) return null
+  const bytes = new Uint8Array(buffer)
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
 export function pushSupported() {
   return (
     typeof window !== 'undefined' &&
@@ -34,6 +44,19 @@ export function pushPermission() {
   return typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
 }
 
+// Реальное состояние переключателя: мало разрешения браузера — нужна еще живая
+// подписка на этом устройстве и не выключенные уведомления в профиле.
+export async function pushState() {
+  if (!pushSupported() || pushPermission() !== 'granted') return false
+  try {
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.getSubscription()
+    return Boolean(subscription)
+  } catch {
+    return false
+  }
+}
+
 export async function enablePush() {
   if (isIosWithoutInstall()) return { ok: false, reason: 'ios-install' }
   if (!pushSupported()) return { ok: false, reason: 'unsupported' }
@@ -45,13 +68,25 @@ export async function enablePush() {
   if (!key) return { ok: false, reason: 'not-configured' }
 
   const registration = await navigator.serviceWorker.ready
-  const existing = await registration.pushManager.getSubscription()
-  const subscription =
-    existing ??
-    (await registration.pushManager.subscribe({
+  let subscription = await registration.pushManager.getSubscription()
+
+  // Подписка запоминает ключ сервера навсегда. Если ключи на сервере сменили,
+  // старая подписка будет молча отвергаться — переоформляем ее на новый ключ.
+  if (subscription && encodeKey(subscription.options?.applicationServerKey) !== key) {
+    await api('/api/notifications/devices', {
+      method: 'DELETE',
+      body: { endpoint: subscription.endpoint },
+    }).catch(() => {})
+    await subscription.unsubscribe().catch(() => {})
+    subscription = null
+  }
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: decodeKey(key),
-    }))
+    })
+  }
 
   await api('/api/notifications/devices', { method: 'POST', body: subscription.toJSON() })
   return { ok: true }
