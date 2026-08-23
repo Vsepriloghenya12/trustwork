@@ -76,6 +76,8 @@ model User {
   avatarData     Bytes?
   avatarMime     String?
   avatarAt       DateTime?
+  // Общий выключатель push-уведомлений
+  pushEnabled    Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -89,6 +91,10 @@ model User {
   supportMessages    SupportMessage[]
   appeals            ReviewAppeal[]   @relation("AuthoredAppeals")
   portfolio          PortfolioItem[]
+  subscriptions      Subscription[]
+  notifications      Notification[]
+  pushDevices        PushDevice[]
+  invitations        Invitation[]     @relation("ReceivedInvitations")
 }
 
 model Project {
@@ -112,6 +118,7 @@ model Project {
   messages     Message[]
   reviews      Review[]
   files        ProjectFile[]
+  invitations  Invitation[]
 
   @@index([status, createdAt])
 }
@@ -258,4 +265,93 @@ model VerificationCode {
   createdAt DateTime  @default(now())
 
   @@index([phone, createdAt])
+}
+
+// ---------- Подписки на проекты и уведомления ----------
+
+enum NotificationKind {
+  PROJECT_MATCH
+  PROJECT_ESCROW
+  INVITATION
+  APPLICATION_NEW
+  APPLICATION_ACCEPTED
+  PROJECT_COMPLETED
+  SUPPORT_REPLY
+  APPEAL_RESOLVED
+  MESSAGE
+}
+
+enum InvitationStatus {
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+// Сохраненный поиск: условия те же, что в ленте
+model Subscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  tag        String?
+  search     String?
+  minBudget  Int?
+  escrowOnly Boolean  @default(false)
+  muted      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  notifications Notification[]
+
+  @@index([userId, createdAt])
+  @@index([muted])
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind           NotificationKind
+  title          String
+  body           String?
+  projectId      String?
+  subscriptionId String?
+  subscription   Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+// Устройство, подписанное на push. Одно на браузер или установленное приложение.
+model PushDevice {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Приглашение заказчика: до 5 на проект, живет 14 дней и не дольше срока задачи
+model Invitation {
+  id           String           @id @default(cuid())
+  projectId    String
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  freelancerId String
+  freelancer   User             @relation("ReceivedInvitations", fields: [freelancerId], references: [id], onDelete: Cascade)
+  status       InvitationStatus @default(SENT)
+  expiresAt    DateTime
+  viewedAt     DateTime?
+  respondedAt  DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@unique([projectId, freelancerId])
+  @@index([freelancerId, status])
+  @@index([projectId, status])
 }

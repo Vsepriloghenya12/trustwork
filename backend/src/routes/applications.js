@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { assertTransition } from '../services/projectStateMachine.js'
+import { notifyApplicationAccepted } from '../services/notifications.js'
 import { ApiError } from '../utils/errors.js'
 
 export const applicationsRouter = Router()
@@ -39,6 +40,7 @@ applicationsRouter.post('/:id/accept', requireAuth, async (req, res) => {
       data: { status: 'IN_PROGRESS', freelancerId: application.freelancerId },
     }),
   ])
+  await notifyApplicationAccepted(application.project, application.freelancerId)
   res.json(accepted)
 })
 

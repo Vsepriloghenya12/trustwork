@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { notifySupportReply } from '../services/notifications.js'
 import { ApiError } from '../utils/errors.js'
 
 export const supportRouter = Router()
@@ -102,6 +103,7 @@ supportRouter.post('/threads/:userId', requireAuth, requireAdmin, async (req, re
   const message = await prisma.supportMessage.create({
     data: { userId: user.id, text: text.trim(), fromSupport: true },
   })
+  await notifySupportReply(user.id, text.trim())
   res.status(201).json(message)
 })
 

@@ -9,10 +9,25 @@ import { resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
 import { FEED_SORTS, buildFeedOrder } from '../services/feedSort.js'
 import { filesRouter } from './files.js'
 import { buildSearchFilter } from '../services/search.js'
+import { findCandidates } from '../services/matching.js'
+import { invitationExpiry, visibleStatus, MAX_INVITATIONS_PER_PROJECT } from '../services/invitations.js'
+import {
+  notifySubscribers,
+  notifyInvitation,
+  notifyNewApplication,
+  notifyProjectCompleted,
+  notifyMessage,
+} from '../services/notifications.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
 
 const projectInclude = { client: true, freelancer: true, transactions: true }
+
+function daysFromNow(days) {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return date
+}
 
 // Статусы, видимые всем в ленте и по прямой ссылке
 const PUBLIC_STATUSES = ['OPEN', 'FUNDED', 'IN_PROGRESS', 'COMPLETED']
@@ -65,6 +80,9 @@ projectsRouter.get('/', async (req, res) => {
       sort: z.enum(FEED_SORTS).default('escrow'),
       // only — показывать лишь проекты с замороженным бюджетом
       escrow: z.enum(['any', 'only']).default('any'),
+      // Минимальный бюджет и запас по сроку — условия из шторки фильтров
+      minBudget: z.coerce.number().int().positive().optional(),
+      minDays: z.coerce.number().int().min(1).max(365).optional(),
       take: z.coerce.number().int().min(1).max(50).default(20),
       skip: z.coerce.number().int().min(0).default(0),
     })
@@ -73,6 +91,8 @@ projectsRouter.get('/', async (req, res) => {
     status: q.escrow === 'only' ? 'FUNDED' : { in: APPLIABLE_STATUSES },
     ...(q.tag ? { tags: { has: q.tag } } : {}),
     ...(q.search ? buildSearchFilter(q.search) ?? {} : {}),
+    ...(q.minBudget ? { budget: { gte: q.minBudget } } : {}),
+    ...(q.minDays ? { deadline: { gte: daysFromNow(q.minDays) } } : {}),
   }
   const projects = await prisma.project.findMany({
     where,
@@ -82,6 +102,86 @@ projectsRouter.get('/', async (req, res) => {
     skip: q.skip,
   })
   res.json(projects.map(serializeProject))
+})
+
+// Кому подойдет задача: пятерка лучших совпадений, остальные — по кнопке
+projectsRouter.get('/:id/candidates', requireAuth, async (req, res) => {
+  const q = z
+    .object({ take: z.coerce.number().int().min(1).max(50).default(5) })
+    .parse(req.query)
+  const project = await getProject(req.params.id)
+  assertOwner(project, req.user)
+  const ranked = await findCandidates(project)
+  res.json({
+    total: ranked.length,
+    items: ranked.slice(0, q.take).map(({ user, matches }) => ({
+      ...publicUser(user),
+      matchedSkills: user.skills.filter((s) =>
+        project.tags.some((t) => t.toLowerCase() === s.toLowerCase()),
+      ),
+      matches,
+    })),
+  })
+})
+
+projectsRouter.get('/:id/invitations', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id)
+  assertOwner(project, req.user)
+  const list = await prisma.invitation.findMany({
+    where: { projectId: project.id },
+    orderBy: { createdAt: 'desc' },
+    include: { freelancer: true },
+  })
+  res.json(
+    list.map((i) => ({
+      id: i.id,
+      status: visibleStatus(i),
+      createdAt: i.createdAt,
+      expiresAt: i.expiresAt,
+      freelancer: publicUser(i.freelancer),
+    })),
+  )
+})
+
+projectsRouter.post('/:id/invitations', requireAuth, async (req, res) => {
+  const { freelancerId } = z.object({ freelancerId: z.string() }).parse(req.body)
+  const project = await getProject(req.params.id)
+  assertOwner(project, req.user)
+  if (!APPLIABLE_STATUSES.includes(project.status)) {
+    throw new ApiError(409, 'Приглашать можно в опубликованный проект')
+  }
+
+  const active = await prisma.invitation.count({
+    where: { projectId: project.id, status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+  })
+  if (active >= MAX_INVITATIONS_PER_PROJECT) {
+    throw new ApiError(409, `Больше ${MAX_INVITATIONS_PER_PROJECT} приглашений на проект отправить нельзя`)
+  }
+
+  const freelancer = await prisma.user.findUnique({ where: { id: freelancerId } })
+  if (!freelancer || freelancer.role !== 'FREELANCER') {
+    throw new ApiError(404, 'Исполнитель не найден')
+  }
+  const applied = await prisma.application.findUnique({
+    where: { projectId_freelancerId: { projectId: project.id, freelancerId } },
+  })
+  if (applied) throw new ApiError(409, 'Этот фрилансер уже откликнулся')
+
+  const escrowActive = project.transactions.some((t) => t.status === 'HOLDED')
+  try {
+    const invitation = await prisma.invitation.create({
+      data: {
+        projectId: project.id,
+        freelancerId,
+        expiresAt: invitationExpiry(project),
+      },
+    })
+    await notifyInvitation(project, freelancerId, { escrowActive })
+    res.status(201).json({ id: invitation.id, status: invitation.status })
+  } catch (e) {
+    if (e.code === 'P2002') throw new ApiError(409, 'Приглашение уже отправлено')
+    throw e
+  }
 })
 
 projectsRouter.get('/mine', requireAuth, async (req, res) => {
@@ -118,6 +218,13 @@ projectsRouter.get('/:id', optionalAuth, async (req, res) => {
   if (!PUBLIC_STATUSES.includes(project.status) && !isParticipant) {
     throw new ApiError(404, 'Проект не найден')
   }
+  // Приглашенный открыл задачу — отмечаем просмотр для заказчика
+  if (req.user) {
+    await prisma.invitation.updateMany({
+      where: { projectId: project.id, freelancerId: req.user.id, status: 'SENT' },
+      data: { status: 'VIEWED', viewedAt: new Date() },
+    })
+  }
   res.json(serializeProject(project))
 })
 
@@ -127,7 +234,9 @@ projectsRouter.post('/:id/publish', requireAuth, async (req, res) => {
   assertOwner(project, req.user)
   assertTransition(project.status, 'OPEN')
   await prisma.project.update({ where: { id: project.id }, data: { status: 'OPEN' } })
-  res.json(serializeProject(await getProject(project.id)))
+  const published = await getProject(project.id)
+  await notifySubscribers(published, { escrowActive: false })
+  res.json(serializeProject(published))
 })
 
 // Заморозка бюджета (из черновика или уже открытого проекта):
@@ -135,9 +244,17 @@ projectsRouter.post('/:id/publish', requireAuth, async (req, res) => {
 projectsRouter.post('/:id/fund', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
+  const wasPublished = APPLIABLE_STATUSES.includes(project.status)
   const result = await fundProject(project)
+  const funded = await getProject(project.id)
+  if (funded.transactions.some((t) => t.status === 'HOLDED')) {
+    await notifySubscribers(funded, {
+      escrowActive: true,
+      reason: wasPublished ? 'PROJECT_ESCROW' : 'PROJECT_MATCH',
+    })
+  }
   res.json({
-    ...serializeProject(await getProject(project.id)),
+    ...serializeProject(funded),
     ...(result.confirmationUrl ? { confirmationUrl: result.confirmationUrl } : {}),
   })
 })
@@ -147,7 +264,11 @@ projectsRouter.post('/:id/complete', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
   await completeProject(project)
-  res.json(serializeProject(await getProject(project.id)))
+  const completed = await getProject(project.id)
+  await notifyProjectCompleted(completed, {
+    escrowReleased: completed.transactions.some((t) => t.status === 'RELEASED'),
+  })
+  res.json(serializeProject(completed))
 })
 
 projectsRouter.post('/:id/cancel', requireAuth, async (req, res) => {
@@ -172,6 +293,7 @@ projectsRouter.post('/:id/applications', requireAuth, async (req, res) => {
     const application = await prisma.application.create({
       data: { projectId: project.id, freelancerId: req.user.id, pitch },
     })
+    await notifyNewApplication(project, req.user.name)
     res.status(201).json(application)
   } catch (e) {
     if (e.code === 'P2002') throw new ApiError(409, 'Вы уже откликнулись на этот проект')
@@ -231,6 +353,7 @@ projectsRouter.post('/:id/messages', requireAuth, async (req, res) => {
   const message = await prisma.message.create({
     data: { projectId: project.id, senderId: req.user.id, recipientId: peerId, text, wasMasked },
   })
+  await notifyMessage(message, project, req.user.name)
   res.status(201).json(message)
 })
 

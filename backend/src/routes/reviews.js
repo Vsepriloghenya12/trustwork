@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { recalcUserRating } from '../services/reviews.js'
+import { notifyAppealResolved } from '../services/notifications.js'
 import { ApiError } from '../utils/errors.js'
 
 export const reviewsRouter = Router()
@@ -116,5 +117,6 @@ reviewsRouter.post('/appeals/:id/resolve', requireAuth, requireAdmin, async (req
     }
   })
   if (decision === 'ACCEPTED') await recalcUserRating(appeal.review.subjectId)
+  await notifyAppealResolved(appeal.authorId, decision, resolution?.trim())
   res.json({ ok: true, status: decision })
 })
