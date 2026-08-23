@@ -46,3 +46,20 @@ $bt = "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.1.0"
 
 В `twa-manifest.json` увеличить `appVersionCode` (+1) и `appVersionName`,
 затем `update` + `build` как выше.
+
+## Уведомления
+
+В `twa-manifest.json` включено `enableNotifications: true` — Android-обертка
+показывает push из PWA как уведомления приложения. После `bubblewrap update`
+проверьте, что в `app/src/main/AndroidManifest.xml` есть строка
+
+```xml
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+```
+
+Без нее на Android 13 и новее уведомления не покажутся, и ошибки не будет —
+они просто молча не придут.
+
+Ключи VAPID живут в переменных сервиса `trustwork` на Railway
+(`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`), локальная копия — в `backend/.env`.
+Менять их не нужно: после смены все подписки на устройствах придется оформлять заново.
