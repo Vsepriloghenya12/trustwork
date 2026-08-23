@@ -52,7 +52,7 @@ export default function InvitationsBlock({ onChanged }) {
   if (items.length === 0) return null
 
   return (
-    <section className="stack" style={{ gap: 10 }}>
+    <section className="stack" style={{ gap: 8 }}>
       <div className="h-sec">
         Вас пригласили <b>· {items.length}</b>
       </div>
@@ -61,28 +61,25 @@ export default function InvitationsBlock({ onChanged }) {
         const project = invitation.project
         return (
           <article key={invitation.id} className="invite">
-            <Link href={`/projects/${project.id}`} className="stack" style={{ gap: 8 }}>
-              <div className="row" style={{ gap: 8 }}>
-                <Avatar name={project.client?.name} src={project.client?.avatarUrl} size={26} />
-                <span className="caption" style={{ fontWeight: 700, color: 'var(--c-muted)' }}>
-                  {project.client?.name || 'Заказчик'}
+            <Link href={`/projects/${project.id}`} className="row" style={{ gap: 10 }}>
+              <Avatar name={project.client?.name} src={project.client?.avatarUrl} size={34} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="file-name" style={{ display: 'block' }}>
+                  {project.title}
                 </span>
-                <span className="caption" style={{ marginLeft: 'auto' }}>
-                  до {formatDate(invitation.expiresAt)}
+                <span className="caption row" style={{ gap: 6 }}>
+                  {formatMoney(project.budget, project.currency)}
+                  {project.escrowActive ? (
+                    <span className="row" style={{ gap: 3, color: 'var(--c-green-ink)', fontWeight: 700 }}>
+                      <LockIcon size={11} />
+                      эскроу
+                    </span>
+                  ) : (
+                    'без эскроу'
+                  )}
+                  · до {formatDate(invitation.expiresAt)}
                 </span>
-              </div>
-              <div className="card__title">{project.title}</div>
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                <span className="budget">{formatMoney(project.budget, project.currency)}</span>
-                {project.escrowActive ? (
-                  <span className="badge-escrow">
-                    <LockIcon />
-                    Бюджет заморожен
-                  </span>
-                ) : (
-                  <span className="chip">Бюджет не заморожен</span>
-                )}
-              </div>
+              </span>
             </Link>
 
             <div className="row" style={{ gap: 8 }}>
