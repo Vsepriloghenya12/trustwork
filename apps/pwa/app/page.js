@@ -161,7 +161,7 @@ export default function FeedPage() {
   }
 
   return (
-    <main className="shell stack" {...refresh.handlers}>
+    <main className="shell stack shell--feed" {...refresh.handlers}>
       <div
         className="pull"
         style={{ height: refresh.pull, opacity: refresh.pull > 6 ? 1 : 0 }}

@@ -188,7 +188,7 @@ textarea {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 18px 20px 96px;
+  padding: 14px 20px 96px;
 }
 
 .shell--bare {
@@ -372,7 +372,7 @@ textarea {
   margin: 0 -20px;
   /* Горизонтальная прокрутка режет все, что выходит за края по вертикали,
      поэтому оставляем сверху место под обводку активной плитки */
-  padding: 12px 20px 8px;
+  padding: 8px 20px 4px;
 }
 
 .rail::-webkit-scrollbar {
@@ -1598,7 +1598,7 @@ textarea.input {
   top: 0;
   z-index: 12;
   background: var(--c-bg);
-  padding: 2px 0 6px;
+  padding: 2px 0 4px;
   margin: 0 -20px;
   padding-left: 20px;
   padding-right: 20px;
@@ -1906,4 +1906,9 @@ textarea.input {
 
 .notice--action b {
   color: var(--c-primary);
+}
+
+/* Лента: блоков много, поэтому промежутки между ними меньше обычных */
+.shell--feed {
+  gap: 10px;
 }

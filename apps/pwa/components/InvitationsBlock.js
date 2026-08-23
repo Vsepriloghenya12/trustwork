@@ -52,7 +52,7 @@ export default function InvitationsBlock({ onChanged }) {
   if (items.length === 0) return null
 
   return (
-    <section className="stack" style={{ gap: 8 }}>
+    <section className="stack" style={{ gap: 6 }}>
       <div className="h-sec">
         Вас пригласили <b>· {items.length}</b>
       </div>
