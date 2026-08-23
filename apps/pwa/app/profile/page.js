@@ -6,7 +6,6 @@ import Link from 'next/link'
 import AvatarEditor from '@/components/AvatarEditor'
 import {
   VerifiedIcon,
-  FileIcon,
   ChevronIcon,
   ChatIcon,
   LockIcon,
@@ -367,26 +366,16 @@ export default function ProfilePage() {
             <ChevronIcon />
           </span>
         </Link>
-
-        <Link href="/legal" className="list-row">
-          <span className="file-icon">
-            <FileIcon />
-          </span>
-          <span style={{ flex: 1 }}>
-            <span className="file-name" style={{ display: 'block' }}>
-              Документы и оферта
-            </span>
-            <span className="caption">Правила расчетов, эскроу и обработки данных</span>
-          </span>
-          <span style={{ color: 'var(--c-faint)', display: 'inline-flex' }}>
-            <ChevronIcon />
-          </span>
-        </Link>
       </section>
 
       <button className="btn btn--outline-danger" onClick={logout}>
         Выйти
       </button>
+
+      {/* Документы нужны, но каждый день их никто не открывает — им место в подвале */}
+      <Link href="/legal" className="footer-link">
+        Оферта, правила и обработка данных
+      </Link>
     </main>
   )
 }
