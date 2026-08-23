@@ -30,8 +30,15 @@ $bt = "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.1.0"
 & "$bt\apksigner.bat" sign --ks android.keystore --ks-key-alias trustwork --ks-pass pass:<ПАРОЛЬ> --key-pass pass:<ПАРОЛЬ> --out TrustWork-X.Y.Z.apk aligned.apk
 ```
 
-Внимание: `bubblewrap update` перезаписывает `gradle.properties` — после него
-вернуть туда строку `org.gradle.jvmargs=-Xmx1536m -Djdk.net.unixdomain.tmpdir=D:\\tmp`.
+Что ломает `bubblewrap update` и что чинить после него:
+
+1. **`gradle.properties`** перезаписывается. Вернуть строку:
+   `org.gradle.jvmargs=-Xmx1536m -Djdk.net.unixdomain.tmpdir=D:\\tmp`.
+   Обратные слэши обязательно **двойные**: это .properties-файл, и одиночный
+   `\t` читается как табуляция. Симптом ошибки — Gradle падает с
+   «Could not find or load main class mp».
+2. **`versionName` в `app/build.gradle`** становится пустым. Проставить руками
+   (`versionName "1.1.0"`) — иначе APK соберется без номера версии.
 
 ## Ключ подписи — КРИТИЧНО
 
