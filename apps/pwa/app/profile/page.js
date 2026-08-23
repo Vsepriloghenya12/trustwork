@@ -13,9 +13,9 @@ import {
   PlusIcon,
 } from '@/components/Icons'
 import Portfolio from '@/components/Portfolio'
+import PayoutStatus from '@/components/PayoutStatus'
 import { api, getToken, clearSession, updateStoredUser, formatMoney } from '@/lib/api'
 import { plural, withPlural } from '@/lib/text'
-import { freelancerPayout } from '@/lib/constants'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -299,14 +299,18 @@ export default function ProfilePage() {
             <LockIcon size={14} />
             {user.inWorkAmount > 0
               ? `В работе под защитой эскроу: ${formatMoney(user.inWorkAmount)}`
-              : `Заработано через эскроу: ${formatMoney(freelancerPayout(user.earnedTotal))}`}
+              : `Заработано через эскроу: ${formatMoney(user.earnedTotal)}`}
           </div>
           {user.inWorkAmount > 0 && user.earnedTotal > 0 && (
             <p className="caption" style={{ marginTop: 6 }}>
-              Заработано за все время: {formatMoney(freelancerPayout(user.earnedTotal))}
+              Заработано за все время: {formatMoney(user.earnedTotal)}
             </p>
           )}
         </div>
+      )}
+
+      {!isClient && (
+        <PayoutStatus value={user.payoutStatus} onChange={(u) => setUser({ ...user, ...u })} />
       )}
 
       {!isClient && (

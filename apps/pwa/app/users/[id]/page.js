@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Avatar from '@/components/Avatar'
 import Portfolio from '@/components/Portfolio'
 import { BackIcon, StarIcon, CheckIcon, VerifiedIcon } from '@/components/Icons'
+import PayoutBadge from '@/components/PayoutBadge'
 import { api, formatDate } from '@/lib/api'
 import { plural } from '@/lib/text'
 
@@ -77,6 +78,7 @@ export default function PublicProfilePage() {
               Проверенный фрилансер
             </span>
           )}
+          {user.role === 'FREELANCER' && <PayoutBadge status={user.payoutStatus} />}
           {user.social && (
             <a
               className="chip"

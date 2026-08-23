@@ -7,6 +7,7 @@ import Avatar from '@/components/Avatar'
 import EscrowTimeline from '@/components/EscrowTimeline'
 import ProjectFiles from '@/components/ProjectFiles'
 import CandidatesBlock from '@/components/CandidatesBlock'
+import PayoutBadge from '@/components/PayoutBadge'
 import {
   BackIcon,
   LockIcon,
@@ -17,6 +18,7 @@ import {
 } from '@/components/Icons'
 import { api, getUser, formatMoney, formatDate } from '@/lib/api'
 import { withPlural } from '@/lib/text'
+import { DISPUTE_CHAT_DAYS, canReceivePayout } from '@/lib/pricing'
 
 const STATUS_LABELS = {
   DRAFT: 'Черновик',
@@ -26,6 +28,8 @@ const STATUS_LABELS = {
   IN_PROGRESS: 'В работе',
   COMPLETED: 'Завершен',
   CANCELLED: 'Отменен',
+  AWAITING_PAYOUT: 'Ждет выплаты',
+  DISPUTED: 'Разбирательство',
 }
 
 const APPLIABLE = ['OPEN', 'FUNDED']
@@ -43,6 +47,8 @@ export default function ProjectPage() {
   const [pitchOpen, setPitchOpen] = useState(false)
   const [pitch, setPitch] = useState('')
   const [pitchSent, setPitchSent] = useState(false)
+  const [disputeOpen, setDisputeOpen] = useState(false)
+  const [disputeReason, setDisputeReason] = useState('')
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
@@ -64,7 +70,7 @@ export default function ProjectPage() {
   // Шкала сделки нужна тем, кто в ней участвует, и только с момента начала работы
   const showEscrowTimeline =
     (isAssignee || isOwner) &&
-    ['IN_PROGRESS', 'COMPLETED'].includes(project?.status) &&
+    ['IN_PROGRESS', 'COMPLETED', 'AWAITING_PAYOUT', 'DISPUTED'].includes(project?.status) &&
     (project?.escrowActive || project?.escrowReleased)
 
   useEffect(() => {
@@ -105,6 +111,17 @@ export default function ProjectPage() {
   const cancel = () => {
     if (!confirm('Отменить проект? Если бюджет был заморожен — он вернется вам.')) return
     act(() => api(`/api/projects/${id}/cancel`, { method: 'POST' }))
+  }
+  // Отмена начатой работы — предложение, а не приказ: подтверждает исполнитель
+  const requestCancel = () => {
+    if (!confirm('Предложить исполнителю отменить проект? Он может не согласиться.')) return
+    act(() => api(`/api/projects/${id}/cancel`, { method: 'POST' }))
+  }
+  const confirmCancel = () => act(() => api(`/api/projects/${id}/cancel/confirm`, { method: 'POST' }))
+  const declineCancel = () => act(() => api(`/api/projects/${id}/cancel/decline`, { method: 'POST' }))
+  const closeSilent = () => {
+    if (!confirm('Закрыть проект из-за молчания исполнителя? Бюджет вернется вам.')) return
+    act(() => api(`/api/projects/${id}/close-silent`, { method: 'POST' }))
   }
   const accept = (appId) =>
     act(async () => {
@@ -340,6 +357,7 @@ export default function ProjectPage() {
                     {a.freelancer.isVerified ? ' · Проверенный' : ' · Новичок'}
                   </div>
                 </div>
+                <PayoutBadge status={a.freelancer.payoutStatus} />
               </Link>
               <p className="small" style={{ whiteSpace: 'pre-wrap' }}>{a.pitch}</p>
               <div className="row" style={{ gap: 8 }}>
@@ -381,7 +399,126 @@ export default function ProjectPage() {
               ? 'Деньги уйдут исполнителю сразу после подтверждения.'
               : 'Эскроу не подключен — оплату вы проводите напрямую.'}
           </p>
+          {!project.cancelRequestedById && (
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className="btn btn--ghost btn--compact"
+                style={{ flex: 1 }}
+                onClick={requestCancel}
+                disabled={busy}
+              >
+                Предложить отмену
+              </button>
+              <button
+                className="btn btn--ghost btn--compact"
+                style={{ flex: 1 }}
+                onClick={() => setDisputeOpen(true)}
+                disabled={busy}
+              >
+                Открыть спор
+              </button>
+            </div>
+          )}
+          <button className="btn btn--outline-danger btn--compact" onClick={closeSilent} disabled={busy}>
+            Исполнитель пропал — закрыть проект
+          </button>
         </>
+      )}
+
+      {isAssignee && project.status === 'IN_PROGRESS' && !project.cancelRequestedById && (
+        <button
+          className="btn btn--ghost btn--compact"
+          onClick={() => setDisputeOpen(true)}
+          disabled={busy}
+        >
+          Открыть спор
+        </button>
+      )}
+
+      {/* Отмену начатой работы предлагает одна сторона, а решают обе */}
+      {project.status === 'IN_PROGRESS' && project.cancelRequestedById && (isOwner || isAssignee) && (
+        <div className="notice notice--action">
+          {isAssignee ? (
+            <>
+              <b>Заказчик предлагает отменить проект.</b> Согласитесь, если работа не начата —
+              бюджет вернется ему. Если работа уже сделана, откажитесь: тогда спор разберет
+              поддержка.
+              <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                <button
+                  className="btn btn--ghost btn--compact"
+                  style={{ flex: 1 }}
+                  onClick={confirmCancel}
+                  disabled={busy}
+                >
+                  Согласен
+                </button>
+                <button
+                  className="btn btn--outline-danger btn--compact"
+                  style={{ flex: 1 }}
+                  onClick={declineCancel}
+                  disabled={busy}
+                >
+                  Не согласен
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <b>Отмена предложена.</b> Ждем ответа исполнителя: без его согласия проект остается в
+              работе.
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Деньги дошли до платформы, но исполнитель пока не может их получить */}
+      {project.status === 'AWAITING_PAYOUT' && (isOwner || isAssignee) && (
+        <div className="escrow-panel">
+          <div className="escrow-panel__title">
+            <LockIcon size={16} />
+            {formatMoney(project.budget, project.currency)} ждут выплаты
+          </div>
+          {isAssignee ? (
+            <>
+              <p className="small">
+                Заказчик принял работу. Чтобы получить деньги, нужен статус самозанятого или ИП —
+                платформа вправе платить только им. Оформление занимает около десяти минут.
+              </p>
+              <p className="caption">
+                Деньги зарезервированы до {formatDate(project.payoutDueAt)}. Как только статус
+                появится, выплата уйдет сама.
+              </p>
+              <Link href="/profile" className="btn btn--green">
+                Указать статус для выплат
+              </Link>
+            </>
+          ) : (
+            <p className="small">
+              Работа принята, деньги списаны. Исполнитель оформляет статус для выплаты — сумма
+              зарезервирована до {formatDate(project.payoutDueAt)}.
+            </p>
+          )}
+        </div>
+      )}
+
+      {project.status === 'DISPUTED' && (isOwner || isAssignee) && (
+        <div className="notice notice--action">
+          <b>Идет разбирательство.</b> У сторон есть {DISPUTE_CHAT_DAYS} дня, чтобы договориться в
+          чате. Если не выйдет, решение примет поддержка: она может присудить исполнителю часть
+          суммы, а остальное вернуть заказчику.
+          <div className="row" style={{ gap: 8, marginTop: 10 }}>
+            <Link
+              href={`/chats/${project.id}`}
+              className="btn btn--ghost btn--compact"
+              style={{ flex: 1 }}
+            >
+              Открыть чат
+            </Link>
+            <Link href="/support" className="btn btn--ghost btn--compact" style={{ flex: 1 }}>
+              Поддержка
+            </Link>
+          </div>
+        </div>
       )}
 
       {project.status === 'COMPLETED' && (
@@ -408,6 +545,12 @@ export default function ProjectPage() {
             <p className="small muted">
               Короткий питч работает лучше шаблона: чем поможете и почему именно вы.
             </p>
+            {project.escrowActive && !canReceivePayout(user) && (
+              <p className="caption">
+                Оплата по проекту идет через эскроу. Чтобы получить деньги, понадобится статус
+                самозанятого — оформить его можно потом, откликнуться это не мешает.
+              </p>
+            )}
             <textarea
               className="input"
               rows={5}
@@ -419,6 +562,46 @@ export default function ProjectPage() {
             {actionError && <div className="form-error">{actionError}</div>}
             <button className="btn btn--primary" disabled={busy || pitch.trim().length < 10}>
               Отправить питч
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ---- Шторка спора ---- */}
+      {disputeOpen && (
+        <div className="sheet-backdrop" onClick={() => setDisputeOpen(false)}>
+          <form
+            className="sheet stack"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault()
+              setDisputeOpen(false)
+              act(() =>
+                api(`/api/projects/${id}/disputes`, {
+                  method: 'POST',
+                  body: { reason: disputeReason.trim() },
+                }),
+              )
+            }}
+          >
+            <span className="sheet__handle" aria-hidden />
+            <div className="title-lg">Открыть спор</div>
+            <p className="small muted">
+              Сначала {DISPUTE_CHAT_DAYS} дня на то, чтобы договориться в чате — так решается
+              большинство разногласий. Если не выйдет, подключится поддержка и разберет переписку,
+              задание и результат работы.
+            </p>
+            <textarea
+              className="input"
+              rows={4}
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder="Что пошло не так и чего вы ждете"
+              autoFocus
+            />
+            {actionError && <div className="form-error">{actionError}</div>}
+            <button className="btn btn--primary" disabled={busy || disputeReason.trim().length < 10}>
+              Открыть спор
             </button>
           </form>
         </div>

@@ -1,10 +1,4 @@
-// Комиссия платформы с успешной сделки (PROJECT_SPEC.md, раздел 9).
-// Удерживается только при расчетах через эскроу.
-export const COMMISSION_RATE = 0.07
-
-export function freelancerPayout(budget) {
-  return Math.round(budget * (1 - COMMISSION_RATE))
-}
+// Тарифы платформы живут в lib/pricing.js — там же, где расчет комиссий.
 
 export const CATEGORIES = ['дизайн', 'разработка', 'тексты', 'маркетинг', 'видео']
 

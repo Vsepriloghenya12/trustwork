@@ -1912,3 +1912,25 @@ textarea.input {
 .shell--feed {
   gap: 10px;
 }
+
+/* Цена варианта публикации — та самая строка, ради которой заказчик и читает блок */
+.choice__price {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-ink-deep);
+}
+
+.choice__price s {
+  color: var(--c-faint);
+  font-weight: 600;
+}
+
+.choice__price em {
+  font-style: normal;
+  color: var(--c-green-ink);
+}

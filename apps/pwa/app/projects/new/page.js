@@ -4,13 +4,20 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BackIcon, LockIcon, PlusIcon, FileIcon, CheckIcon, TrashIcon } from '@/components/Icons'
 import { api, getToken, API_URL, formatMoney } from '@/lib/api'
-import {
-  CATEGORIES,
-  BUDGET_PRESETS,
-  DEADLINE_PRESETS,
-  COMMISSION_RATE,
-  freelancerPayout,
-} from '@/lib/constants'
+import { CATEGORIES, BUDGET_PRESETS, DEADLINE_PRESETS } from '@/lib/constants'
+import { publicationFee, escrowFee, escrowCharge, ESCROW_FEE, PUBLICATION_FEE } from '@/lib/pricing'
+
+// В бесплатный период показываем будущую цену зачеркнутой: включение платы
+// не должно однажды стать сюрпризом.
+function PriceTag({ paid, amount }) {
+  if (paid) return <>{formatMoney(amount)}</>
+  return (
+    <>
+      <s>{formatMoney(amount)}</s>
+      <em>сейчас бесплатно</em>
+    </>
+  )
+}
 
 const MAX_FILES = 5
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -35,13 +42,20 @@ export default function NewProjectPage() {
   const [step, setStep] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Идет ли бесплатный период, знает только сервер
+  const [paid, setPaid] = useState(false)
 
   useEffect(() => {
     if (!getToken()) router.replace('/login')
+    api('/api/pricing?budget=1')
+      .then((p) => setPaid(p.billingEnabled))
+      .catch(() => {})
   }, [router])
 
   const budgetValue = Number(budget) || 0
-  const payout = freelancerPayout(budgetValue)
+  const escrowTotal = escrowCharge(budgetValue)
+  const escrowCommission = escrowFee(budgetValue)
+  const publishCommission = publicationFee(budgetValue)
 
   function toggleCategory(cat) {
     setCategories((list) => (list.includes(cat) ? list.filter((c) => c !== cat) : [...list, cat]))
@@ -205,9 +219,8 @@ export default function NewProjectPage() {
           />
           {budgetValue > 0 && (
             <p className="caption">
-              Исполнитель получит <b>{formatMoney(payout)}</b> — комиссия платформы{' '}
-              {Math.round(COMMISSION_RATE * 100)}% удерживается только с успешной сделки через
-              эскроу.
+              Исполнитель получит <b>{formatMoney(budgetValue)}</b> целиком — комиссия платформы
+              начисляется вам сверху, а не вычитается из работы.
             </p>
           )}
         </section>
@@ -303,6 +316,13 @@ export default function NewProjectPage() {
 
         <section className="stack" style={{ gap: 8 }}>
           <div className="h-sec">Как публикуем</div>
+          {!paid && (
+            <p className="caption">
+              Пока платежи подключаются, обе публикации бесплатны. Цены ниже — те, что начнут
+              действовать позже; сейчас с вас не спишется ничего.
+            </p>
+          )}
+
           <button
             type="button"
             className={`choice${withEscrow ? ' choice--active' : ''}`}
@@ -315,11 +335,21 @@ export default function NewProjectPage() {
             <span className="choice__body">
               <span className="choice__title">С эскроу — оплата гарантирована</span>
               <span className="caption">
-                Бюджет замораживается на платформе. Проект получает бейдж и показывается выше в
-                ленте, фрилансеры откликаются охотнее.
+                Бюджет замораживается на платформе до приемки работы. Проект получает бейдж и
+                показывается выше в ленте, исполнители откликаются охотнее.
               </span>
+              {budgetValue > 0 && (
+                <span className="choice__price">
+                  <PriceTag paid={paid} amount={escrowTotal} />
+                  <span className="caption">
+                    комиссия {Math.round(ESCROW_FEE.rate * 100)}% —{' '}
+                    {formatMoney(escrowCommission)}
+                  </span>
+                </span>
+              )}
             </span>
           </button>
+
           <button
             type="button"
             className={`choice${!withEscrow ? ' choice--active' : ''}`}
@@ -330,11 +360,20 @@ export default function NewProjectPage() {
               <FileIcon size={16} />
             </span>
             <span className="choice__body">
-              <span className="choice__title">Без эскроу</span>
+              <span className="choice__title">Без эскроу — расчеты напрямую</span>
               <span className="caption">
-                Публикация бесплатна, оплата напрямую по договоренности. Гарантий платформы нет,
-                эскроу можно подключить позже.
+                Платформа в расчетах не участвует и оплату не гарантирует. Эскроу можно подключить
+                позже — уплаченное за публикацию зачтется.
               </span>
+              {budgetValue > 0 && (
+                <span className="choice__price">
+                  <PriceTag paid={paid} amount={publishCommission} />
+                  <span className="caption">
+                    комиссия {Math.round(PUBLICATION_FEE.rate * 100)}%, вернем, если за неделю не
+                    будет откликов
+                  </span>
+                </span>
+              )}
             </span>
           </button>
         </section>
