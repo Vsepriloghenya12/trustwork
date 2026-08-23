@@ -5,6 +5,9 @@ import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser, privateUser } from '../utils/serializers.js'
+import { canReceivePayout } from '../services/pricing.js'
+import { payoutAwaiting } from '../services/escrow.js'
+import { notifyPayoutSent } from '../services/notifications.js'
 
 export const usersRouter = Router()
 
@@ -72,6 +75,40 @@ usersRouter.patch('/me', requireAuth, async (req, res) => {
     .parse(req.body)
   const user = await prisma.user.update({ where: { id: req.user.id }, data })
   res.json(await withRoleStats(user, privateUser))
+})
+
+// Статус для выплат. Платформа перечисляет деньги только самозанятым и ИП:
+// выплата обычному физлицу сделала бы ее налоговым агентом и потребовала бы
+// страховых взносов сверх суммы сделки. Банк перепроверяет статус по базе ФНС
+// в момент перевода — здесь человек лишь заявляет о нем.
+usersRouter.post('/me/payout-status', requireAuth, async (req, res) => {
+  const { status } = z
+    .object({ status: z.enum(['NONE', 'SELF_EMPLOYED', 'ENTREPRENEUR']) })
+    .parse(req.body)
+  const user = await prisma.user.update({
+    where: { id: req.user.id },
+    data: { payoutStatus: status, payoutStatusAt: status === 'NONE' ? null : new Date() },
+  })
+
+  // Деньги, которые ждали статуса, уходят сразу — это и есть главный довод
+  // за то, чтобы его оформить
+  const paid = []
+  if (canReceivePayout(user)) {
+    const waiting = await prisma.project.findMany({
+      where: { freelancerId: user.id, status: 'AWAITING_PAYOUT' },
+    })
+    for (const project of waiting) {
+      try {
+        await payoutAwaiting(project)
+        await notifyPayoutSent(project, project.budget)
+        paid.push({ id: project.id, title: project.title, amount: project.budget })
+      } catch (e) {
+        console.error('[payout]', project.id, e.message)
+      }
+    }
+  }
+
+  res.json({ ...(await withRoleStats(user, privateUser)), paidOut: paid })
 })
 
 // Непрочитанные сообщения: всего и по проектам (для бейджей в навигации и списке чатов)

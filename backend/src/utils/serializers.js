@@ -13,6 +13,9 @@ export function publicUser(u) {
     completedDeals: u.completedDeals,
     social: u.social,
     isVerified: u.isVerified,
+    // Статус для выплат виден до найма: с эскроу заказчик выбирает осознанно,
+    // а исполнитель без статуса видит, что теряет отклики
+    payoutStatus: u.payoutStatus,
     createdAt: u.createdAt,
   }
 }

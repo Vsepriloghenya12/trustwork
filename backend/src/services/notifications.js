@@ -129,3 +129,67 @@ export function notifyMessage(message, project, senderName) {
     projectId: project.id,
   })
 }
+
+// --- Деньги и разбирательства ---
+
+export function notifyPayoutStatusRequired(project, daysLeft) {
+  if (!project.freelancerId) return null
+  return notify(project.freelancerId, {
+    kind: 'PAYOUT_STATUS_REQUIRED',
+    title: `Деньги ждут вас: ${money(project.budget)}`,
+    body:
+      daysLeft > 0
+        ? `Чтобы получить оплату, оформите самозанятость. Осталось ${daysLeft} дн.`
+        : 'Срок оформления статуса истек — разбирается поддержка',
+    projectId: project.id,
+  })
+}
+
+export function notifyPayoutSent(project, amount) {
+  if (!project.freelancerId) return null
+  return notify(project.freelancerId, {
+    kind: 'PAYOUT_SENT',
+    title: `Выплата отправлена: ${money(amount)}`,
+    body: project.title,
+    projectId: project.id,
+  })
+}
+
+export function notifyCancelRequested(project, toUserId) {
+  return notify(toUserId, {
+    kind: 'CANCEL_REQUESTED',
+    title: `Предложена отмена: ${project.title}`,
+    body: 'Подтвердите отмену или откройте спор, если не согласны',
+    projectId: project.id,
+  })
+}
+
+export function notifyDisputeOpened(project, toUserId) {
+  return notify(toUserId, {
+    kind: 'DISPUTE_OPENED',
+    title: `Открыт спор: ${project.title}`,
+    body: 'Есть три дня, чтобы договориться в чате, дальше подключится поддержка',
+    projectId: project.id,
+  })
+}
+
+export function notifyDisputeResolved(project, toUserId, payout) {
+  return notify(toUserId, {
+    kind: 'DISPUTE_RESOLVED',
+    title: `Спор решен: ${project.title}`,
+    body: payout > 0 ? `Исполнителю выплачено ${money(payout)}` : 'Деньги возвращены заказчику',
+    projectId: project.id,
+  })
+}
+
+export function notifyFeeRefunded(project, amount, reason) {
+  return notify(project.clientId, {
+    kind: 'FEE_REFUNDED',
+    title: `Комиссия возвращена: ${money(amount)}`,
+    body:
+      reason === 'NO_APPLICATIONS'
+        ? `За неделю на «${project.title}» не откликнулся никто`
+        : `Проект «${project.title}» отменен`,
+    projectId: project.id,
+  })
+}

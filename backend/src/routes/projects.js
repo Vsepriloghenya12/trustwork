@@ -2,7 +2,14 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
-import { fundProject, completeProject, refundEscrow } from '../services/escrow.js'
+import {
+  publishProject,
+  fundProject,
+  acceptWork,
+  refundEscrow,
+  refundPublicationFee,
+} from '../services/escrow.js'
+import { publicationRefundReason, daysFromNow as inDays, RULES } from '../services/pricing.js'
 import { maskContacts } from '../services/moderation.js'
 import { assertTransition } from '../services/projectStateMachine.js'
 import { resolveReviewTarget, recalcUserRating } from '../services/reviews.js'
@@ -17,6 +24,10 @@ import {
   notifyNewApplication,
   notifyProjectCompleted,
   notifyMessage,
+  notifyCancelRequested,
+  notifyPayoutStatusRequired,
+  notifyDisputeOpened,
+  notifyFeeRefunded,
 } from '../services/notifications.js'
 import { ApiError } from '../utils/errors.js'
 import { publicUser } from '../utils/serializers.js'
@@ -30,13 +41,16 @@ function daysFromNow(days) {
 }
 
 // Статусы, видимые всем в ленте и по прямой ссылке
-const PUBLIC_STATUSES = ['OPEN', 'FUNDED', 'IN_PROGRESS', 'COMPLETED']
+const PUBLIC_STATUSES = ['OPEN', 'FUNDED', 'IN_PROGRESS', 'COMPLETED', 'AWAITING_PAYOUT', 'DISPUTED']
+
+// Сделка идет: отменить ее в одиночку уже нельзя
+const ACTIVE_DEAL_STATUSES = ['IN_PROGRESS', 'AWAITING_PAYOUT', 'DISPUTED']
 
 // Отклики принимаются на любой опубликованный проект — с эскроу и без
 const APPLIABLE_STATUSES = ['OPEN', 'FUNDED']
 
 function serializeProject(p) {
-  const transactions = p.transactions ?? []
+  const escrow = (p.transactions ?? []).filter((t) => t.kind === 'ESCROW')
   return {
     id: p.id,
     title: p.title,
@@ -47,9 +61,17 @@ function serializeProject(p) {
     deadline: p.deadline,
     status: p.status,
     // бейдж «Оплата гарантирована»: бюджет прямо сейчас заморожен в эскроу
-    escrowActive: transactions.some((t) => t.status === 'HOLDED'),
-    // сделка завершена с выплатой через эскроу
-    escrowReleased: transactions.some((t) => t.status === 'RELEASED'),
+    escrowActive: escrow.some((t) => t.status === 'HOLDED'),
+    // деньги дошли до исполнителя — не путать с моментом списания у заказчика
+    escrowReleased: p.status === 'COMPLETED' && escrow.some((t) => t.status === 'RELEASED'),
+    // уплаченная комиссия: при переходе на эскроу засчитывается в счет эскроу-комиссии
+    feePaid: p.feePaid,
+    publishedAt: p.publishedAt,
+    startedAt: p.startedAt,
+    acceptedAt: p.acceptedAt,
+    // до этой даты исполнителю нужно оформить самозанятость, иначе решает поддержка
+    payoutDueAt: p.payoutDueAt,
+    cancelRequestedById: p.cancelRequestedById,
     client: publicUser(p.client),
     freelancer: p.freelancer ? publicUser(p.freelancer) : null,
     createdAt: p.createdAt,
@@ -228,15 +250,18 @@ projectsRouter.get('/:id', optionalAuth, async (req, res) => {
   res.json(serializeProject(project))
 })
 
-// Публикация без эскроу: проект попадает в ленту, но без бейджа «Оплата гарантирована»
+// Публикация без эскроу: проект попадает в ленту, но без бейджа «Оплата гарантирована».
+// Комиссия берется вперед — если включен платный режим, проект ждет оплаты.
 projectsRouter.post('/:id/publish', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
-  assertTransition(project.status, 'OPEN')
-  await prisma.project.update({ where: { id: project.id }, data: { status: 'OPEN' } })
+  const result = await publishProject(project)
   const published = await getProject(project.id)
-  await notifySubscribers(published, { escrowActive: false })
-  res.json(serializeProject(published))
+  if (published.status === 'OPEN') await notifySubscribers(published, { escrowActive: false })
+  res.json({
+    ...serializeProject(published),
+    ...(result.confirmationUrl ? { confirmationUrl: result.confirmationUrl } : {}),
+  })
 })
 
 // Заморозка бюджета (из черновика или уже открытого проекта):
@@ -259,23 +284,112 @@ projectsRouter.post('/:id/fund', requireAuth, async (req, res) => {
   })
 })
 
-// Приемка работы заказчиком: при эскроу деньги уходят фрилансеру
+// Приемка работы заказчиком: при эскроу деньги уходят исполнителю. Если у него
+// нет статуса самозанятого, проект уходит в AWAITING_PAYOUT — деньги ждут его.
 projectsRouter.post('/:id/complete', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
-  await completeProject(project)
+  await acceptWork(project)
   const completed = await getProject(project.id)
-  await notifyProjectCompleted(completed, {
-    escrowReleased: completed.transactions.some((t) => t.status === 'RELEASED'),
-  })
+  if (completed.status === 'AWAITING_PAYOUT') {
+    await notifyPayoutStatusRequired(completed, RULES.payoutStatusDays)
+  } else {
+    await notifyProjectCompleted(completed, { escrowReleased: completed.status === 'COMPLETED' })
+  }
   res.json(serializeProject(completed))
 })
 
+// Отмена проекта. До начала работ — решение заказчика; в работе — только с
+// согласия исполнителя, иначе разбирательство. Заодно проверяем, не пора ли
+// вернуть комиссию за публикацию.
 projectsRouter.post('/:id/cancel', requireAuth, async (req, res) => {
   const project = await getProject(req.params.id)
   assertOwner(project, req.user)
+
   if (project.status === 'IN_PROGRESS') {
-    throw new ApiError(409, 'Проект в работе: отмена только через арбитраж поддержки')
+    if (!project.freelancerId) throw new ApiError(409, 'У проекта нет исполнителя')
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { cancelRequestedById: req.user.id, cancelRequestedAt: new Date() },
+    })
+    await notifyCancelRequested(project, project.freelancerId)
+    return res.json(serializeProject(await getProject(project.id)))
+  }
+  if (project.status === 'AWAITING_PAYOUT' || project.status === 'DISPUTED') {
+    throw new ApiError(409, 'Проект разбирает поддержка — отменить его нельзя')
+  }
+
+  const applications = await prisma.application.count({ where: { projectId: project.id } })
+  const refundReason = publicationRefundReason(project, applications)
+  await refundEscrow(project)
+  if (refundReason) {
+    const amount = await refundPublicationFee(project)
+    if (amount) await notifyFeeRefunded(project, amount, refundReason)
+  }
+  res.json(serializeProject(await getProject(project.id)))
+})
+
+// Исполнитель согласен на отмену — деньги возвращаются заказчику
+projectsRouter.post('/:id/cancel/confirm', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id)
+  if (project.freelancerId !== req.user.id) {
+    throw new ApiError(403, 'Подтвердить отмену может только исполнитель')
+  }
+  if (!project.cancelRequestedAt) throw new ApiError(409, 'Отмену никто не предлагал')
+  await refundEscrow(project)
+  res.json(serializeProject(await getProject(project.id)))
+})
+
+// Исполнитель не согласен — дальше спор
+projectsRouter.post('/:id/cancel/decline', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id)
+  if (project.freelancerId !== req.user.id) {
+    throw new ApiError(403, 'Отказаться от отмены может только исполнитель')
+  }
+  if (!project.cancelRequestedAt) throw new ApiError(409, 'Отмену никто не предлагал')
+  const dispute = await openDispute(project, req.user, 'Исполнитель не согласен с отменой проекта')
+  res.status(201).json(dispute)
+})
+
+// Спор: открыть может любая сторона в любой момент сделки
+projectsRouter.post('/:id/disputes', requireAuth, async (req, res) => {
+  const { reason } = z.object({ reason: z.string().min(10).max(1000) }).parse(req.body)
+  const project = await getProject(req.params.id)
+  if (req.user.id !== project.clientId && req.user.id !== project.freelancerId) {
+    throw new ApiError(403, 'Спор открывают только стороны сделки')
+  }
+  res.status(201).json(await openDispute(project, req.user, reason))
+})
+
+projectsRouter.get('/:id/disputes', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id)
+  if (req.user.id !== project.clientId && req.user.id !== project.freelancerId) {
+    throw new ApiError(403, 'Споры видны только сторонам сделки')
+  }
+  const list = await prisma.dispute.findMany({
+    where: { projectId: project.id },
+    orderBy: { createdAt: 'desc' },
+  })
+  res.json(list)
+})
+
+// Исполнитель молчит две недели — заказчик закрывает проект сам, деньги возвращаются
+projectsRouter.post('/:id/close-silent', requireAuth, async (req, res) => {
+  const project = await getProject(req.params.id)
+  assertOwner(project, req.user)
+  if (project.status !== 'IN_PROGRESS') throw new ApiError(409, 'Проект не в работе')
+
+  const lastWord = await prisma.message.findFirst({
+    where: { projectId: project.id, senderId: project.freelancerId },
+    orderBy: { createdAt: 'desc' },
+  })
+  const silentSince = lastWord?.createdAt ?? project.startedAt ?? project.updatedAt
+  const days = Math.floor((Date.now() - silentSince.getTime()) / 86400000)
+  if (days < RULES.silentFreelancerDays) {
+    throw new ApiError(
+      409,
+      `Исполнитель молчит ${days} дн. Закрыть проект в одиночку можно после ${RULES.silentFreelancerDays}`,
+    )
   }
   await refundEscrow(project)
   res.json(serializeProject(await getProject(project.id)))
@@ -422,6 +536,34 @@ projectsRouter.post('/:id/reviews', requireAuth, async (req, res) => {
   if (target.kind === 'DEAL') await recalcUserRating(target.subjectId)
   res.status(201).json(review)
 })
+
+// Спор сначала три дня живет между сторонами в чате, и только потом попадает
+// к поддержке: большинство разногласий стороны снимают сами.
+async function openDispute(project, user, reason) {
+  if (!ACTIVE_DEAL_STATUSES.includes(project.status)) {
+    throw new ApiError(409, 'Спор возможен только по сделке в работе')
+  }
+  const existing = await prisma.dispute.findFirst({
+    where: { projectId: project.id, status: { not: 'RESOLVED' } },
+  })
+  if (existing) throw new ApiError(409, 'Спор по этому проекту уже открыт')
+
+  const dispute = await prisma.dispute.create({
+    data: {
+      projectId: project.id,
+      openedById: user.id,
+      reason,
+      supportAt: inDays(RULES.disputeChatDays),
+    },
+  })
+  if (project.status !== 'DISPUTED') {
+    assertTransition(project.status, 'DISPUTED')
+    await prisma.project.update({ where: { id: project.id }, data: { status: 'DISPUTED' } })
+  }
+  const peerId = user.id === project.clientId ? project.freelancerId : project.clientId
+  if (peerId) await notifyDisputeOpened(project, peerId)
+  return dispute
+}
 
 async function resolvePeer(project, user, withId) {
   if (user.id === project.clientId) {

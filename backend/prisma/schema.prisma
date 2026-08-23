@@ -23,6 +23,31 @@ enum ProjectStatus {
   COMPLETED
   CANCELLED
   OPEN
+  // Работа принята, но исполнитель еще не может получить деньги:
+  // выплата возможна только самозанятому или ИП
+  AWAITING_PAYOUT
+  DISPUTED
+}
+
+// Кому платформа вправе перечислить деньги. Обычному физлицу — никогда:
+// иначе платформа становится налоговым агентом и платит страховые взносы.
+enum PayoutStatus {
+  NONE
+  SELF_EMPLOYED
+  ENTREPRENEUR
+}
+
+// ESCROW — деньги за работу, FEE — комиссия платформы
+enum TransactionKind {
+  ESCROW
+  FEE
+}
+
+// OPEN — стороны договариваются сами (3 дня), дальше спор уходит в поддержку
+enum DisputeStatus {
+  OPEN
+  IN_SUPPORT
+  RESOLVED
 }
 
 enum ReviewKind {
@@ -58,36 +83,39 @@ enum TransactionStatus {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  phone          String   @unique
-  role           Role     @default(FREELANCER)
+  id             String       @id @default(cuid())
+  phone          String       @unique
+  role           Role         @default(FREELANCER)
   name           String?
   bio            String?
-  skills         String[] @default([])
-  rating         Float    @default(0)
-  reviewsCount   Int      @default(0)
-  completedDeals Int      @default(0)
+  skills         String[]     @default([])
+  rating         Float        @default(0)
+  reviewsCount   Int          @default(0)
+  completedDeals Int          @default(0)
   // Ссылка на соцсеть или портфолио — «рабочий след» пользователя
   social         String?
-  isVerified     Boolean  @default(false)
+  isVerified     Boolean      @default(false)
   // Доступ к странице владельца: поддержка и арбитраж
-  isAdmin        Boolean  @default(false)
+  isAdmin        Boolean      @default(false)
   // Фото профиля: хранится в БД, отдается через /api/users/:id/avatar
   avatarData     Bytes?
   avatarMime     String?
   avatarAt       DateTime?
   // Общий выключатель push-уведомлений
-  pushEnabled    Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  pushEnabled    Boolean      @default(true)
+  // Статус для выплат: подтверждается банком по базе ФНС в момент перевода
+  payoutStatus   PayoutStatus @default(NONE)
+  payoutStatusAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  clientProjects     Project[]     @relation("ClientProjects")
-  freelancerProjects Project[]     @relation("FreelancerProjects")
+  clientProjects     Project[]        @relation("ClientProjects")
+  freelancerProjects Project[]        @relation("FreelancerProjects")
   applications       Application[]
-  sentMessages       Message[]     @relation("SentMessages")
-  receivedMessages   Message[]     @relation("ReceivedMessages")
-  reviewsReceived    Review[]      @relation("SubjectReviews")
-  reviewsAuthored    Review[]      @relation("AuthoredReviews")
+  sentMessages       Message[]        @relation("SentMessages")
+  receivedMessages   Message[]        @relation("ReceivedMessages")
+  reviewsReceived    Review[]         @relation("SubjectReviews")
+  reviewsAuthored    Review[]         @relation("AuthoredReviews")
   supportMessages    SupportMessage[]
   appeals            ReviewAppeal[]   @relation("AuthoredAppeals")
   portfolio          PortfolioItem[]
@@ -95,6 +123,7 @@ model User {
   notifications      Notification[]
   pushDevices        PushDevice[]
   invitations        Invitation[]     @relation("ReceivedInvitations")
+  disputesOpened     Dispute[]        @relation("OpenedDisputes")
 }
 
 model Project {
@@ -110,8 +139,21 @@ model Project {
   client       User          @relation("ClientProjects", fields: [clientId], references: [id])
   freelancerId String?
   freelancer   User?         @relation("FreelancerProjects", fields: [freelancerId], references: [id])
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+
+  // Комиссия, уже уплаченная по проекту. При переходе на эскроу засчитывается
+  // в счет эскроу-комиссии, поэтому хранится отдельно от суммы сделки.
+  feePaid             Int       @default(0)
+  publishedAt         DateTime?
+  startedAt           DateTime?
+  acceptedAt          DateTime?
+  // Докуда исполнитель обязан оформить статус, иначе решает поддержка
+  payoutDueAt         DateTime?
+  // Отмену в работе предлагает одна сторона, подтверждает другая
+  cancelRequestedById String?
+  cancelRequestedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   applications Application[]
   transactions Transaction[]
@@ -119,8 +161,10 @@ model Project {
   reviews      Review[]
   files        ProjectFile[]
   invitations  Invitation[]
+  disputes     Dispute[]
 
   @@index([status, createdAt])
+  @@index([status, payoutDueAt])
 }
 
 // Вложения к задаче (ТЗ, примеры). Содержимое лежит в БД: для MVP этого хватает,
@@ -196,6 +240,7 @@ model Application {
 
 model Transaction {
   id         String            @id @default(cuid())
+  kind       TransactionKind   @default(ESCROW)
   amount     Int
   currency   String            @default("RUB")
   status     TransactionStatus @default(HOLDED)
@@ -279,6 +324,12 @@ enum NotificationKind {
   SUPPORT_REPLY
   APPEAL_RESOLVED
   MESSAGE
+  PAYOUT_STATUS_REQUIRED
+  PAYOUT_SENT
+  CANCEL_REQUESTED
+  DISPUTE_OPENED
+  DISPUTE_RESOLVED
+  FEE_REFUNDED
 }
 
 enum InvitationStatus {
@@ -336,6 +387,28 @@ model PushDevice {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Спор по сделке. Открыть может любая сторона в любой момент: сначала три дня
+// на то, чтобы договориться в чате, потом подключается поддержка.
+model Dispute {
+  id                 String        @id @default(cuid())
+  projectId          String
+  project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  openedById         String
+  openedBy           User          @relation("OpenedDisputes", fields: [openedById], references: [id])
+  reason             String
+  status             DisputeStatus @default(OPEN)
+  // Когда спор перестает быть частным делом сторон и попадает к поддержке
+  supportAt          DateTime
+  // Сколько из бюджета ушло исполнителю по итогам разбора
+  payoutToFreelancer Int?
+  resolution         String?
+  createdAt          DateTime      @default(now())
+  resolvedAt         DateTime?
+
+  @@index([status, supportAt])
+  @@index([projectId])
 }
 
 // Приглашение заказчика: до 5 на проект, живет 14 дней и не дольше срока задачи

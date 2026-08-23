@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 
-// Мок двухстадийного платежа (authorization → capture/cancel).
-// Интерфейс совпадает с будущими адаптерами ЮKassa/Stripe: hold, capture, cancel.
+// Мок двухстадийного платежа (authorization → capture/cancel) плюс выплаты и возвраты.
+// Интерфейс совпадает с будущим адаптером Т-Банка: hold, capture, cancel, payout, refund.
 export function createMockPaymentProvider() {
   const payments = new Map()
   return {
@@ -34,6 +34,17 @@ export function createMockPaymentProvider() {
         throw new Error(`Платеж ${externalId} нельзя отменить (статус: ${payment.status})`)
       }
       payment.status = 'cancelled'
+    },
+    // Выплата исполнителю. У боевого провайдера здесь перевод по СБП с проверкой
+    // статуса самозанятого по базе ФНС; в моке — только запись в лог.
+    async payout({ amount, currency, userId }) {
+      const externalId = `mock_payout_${crypto.randomUUID()}`
+      console.log(`[payments:mock] выплата ${amount} ${currency} пользователю ${userId}`)
+      return { externalId }
+    },
+    async refund(externalId, amount) {
+      console.log(`[payments:mock] возврат ${amount} по платежу ${externalId}`)
+      return { externalId: `mock_refund_${crypto.randomUUID()}` }
     },
   }
 }

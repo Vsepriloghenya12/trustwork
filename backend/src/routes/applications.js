@@ -37,7 +37,12 @@ applicationsRouter.post('/:id/accept', requireAuth, async (req, res) => {
     }),
     prisma.project.update({
       where: { id: application.projectId },
-      data: { status: 'IN_PROGRESS', freelancerId: application.freelancerId },
+      data: {
+        status: 'IN_PROGRESS',
+        freelancerId: application.freelancerId,
+        // От этой даты считается молчание исполнителя
+        startedAt: new Date(),
+      },
     }),
   ])
   await notifyApplicationAccepted(application.project, application.freelancerId)

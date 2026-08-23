@@ -62,6 +62,21 @@ export function createYooKassaProvider() {
     async cancel(externalId) {
       await call(`payments/${externalId}/cancel`)
     },
+    // Возврат уже подтвержденного платежа: частичный или полный
+    async refund(externalId, amount, currency = 'RUB') {
+      await call('refunds', {
+        body: {
+          payment_id: externalId,
+          amount: { value: formatAmountValue(amount), currency },
+        },
+      })
+    },
+    // Выплаты исполнителям идут через Т-Банк Мультирасчеты: там проверяется
+    // статус самозанятого по базе ФНС и формируется чек за исполнителя.
+    // ЮKassa в нашей схеме только принимает деньги.
+    async payout() {
+      throw new Error('Выплаты через ЮKassa не подключены — используйте Т-Банк Мультирасчеты')
+    },
     // Статус перепроверяется у API — телу вебхука не доверяем
     async getStatus(externalId) {
       const payment = await call(`payments/${externalId}`, { method: 'GET' })

@@ -11,6 +11,8 @@ import { reviewsRouter } from './routes/reviews.js'
 import { subscriptionsRouter } from './routes/subscriptions.js'
 import { notificationsRouter } from './routes/notifications.js'
 import { invitationsRouter } from './routes/invitations.js'
+import { pricingRouter } from './routes/pricing.js'
+import { arbitrationRouter } from './routes/arbitration.js'
 import { errorHandler } from './utils/errors.js'
 
 export function createApp() {
@@ -30,6 +32,8 @@ export function createApp() {
   app.use('/api/subscriptions', subscriptionsRouter)
   app.use('/api/notifications', notificationsRouter)
   app.use('/api/invitations', invitationsRouter)
+  app.use('/api/pricing', pricingRouter)
+  app.use('/api/arbitration', arbitrationRouter)
 
   app.use(errorHandler)
   return app
